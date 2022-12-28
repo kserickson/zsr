@@ -95,7 +95,6 @@ print("Here is a list of books with missing page lengths:")
 print(df_missing.loc[:, ['title', 'length']])
 
 # DERIVED COLUMNS
-
 # Compute the number of days between the began and completed dates and add it to a new column: duration
 
 df_library['duration'] = (df_library['completed'] - df_library['began']).apply(lambda x: x.days + 1)
@@ -250,6 +249,35 @@ plt.savefig(
     bbox_inches='tight'
 )
 
+# Create a GANTT chart of books I read in 2022books
+
+# Get the list of books and their start and end dates
+books = df_2022[['began', 'completed']].values
+
+# Get the y-coordinates for each book
+y_coords = range(len(books))
+
+# Create the figure and axis
+fig, ax = plt.subplots()
+
+# Plot the bars using broken_barh
+for i, (start, end) in enumerate(books):
+    ax.broken_barh([(start, end-start)], (y_coords[i]-0.4, 0.8), facecolors='blue')
+
+# Set the y-axis tick labels to the book names
+ax.set_yticks(y_coords)
+ax.set_yticklabels(df_2022['title'])
+
+# Set the x-axis limits to cover the entire year
+ax.set_xlim(df_2022['began'].min(), df_2022['completed'].max())
+
+# Show the plot
+plt.savefig(
+    '/Users/kserickson/Documents/zsr/figures/2022books-gantt.png',
+    dpi=300,
+    transparent=True,
+    bbox_inches='tight'
+)
 # Write df_library to read_csv
 # df_library.to_csv('/Users/kserickson/Downloads/library.csv', index=False)
 
