@@ -1,18 +1,14 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import datetime
-
-from PIL import Image
-import urllib
-import os
 
 # DATA IMPORT
 
 # Read libib data exports into data frames
-df_zsreglau = pd.read_csv('/Users/kserickson/Downloads/library_zsreglau.csv')
-df_kindle = pd.read_csv('/Users/kserickson/Downloads/library_kindle.csv')
-df_borrowed = pd.read_csv('/Users/kserickson/Downloads/library_borrowed.csv')
-df_emeritus = pd.read_csv('/Users/kserickson/Downloads/library_emeritus.csv')
+df_zsreglau = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_zsreglau.csv')
+df_kindle = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_kindle.csv')
+df_borrowed = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_borrowed.csv')
+df_emeritus = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_emeritus.csv')
+df_daily = pd.read_csv('/Users/kserickson/Documents/zsr/data/daily_log.csv')
 
 # Add columns to dataframe indicating which library they came from
 df_zsreglau['library'] = 'zsreglau'
@@ -20,7 +16,7 @@ df_kindle['library'] = 'kindle'
 df_borrowed['library'] = 'borrowed'
 df_emeritus['library'] = 'emeritus'
 
-# Concatenate all four dataframes into a single dataframe
+# Concatenate all four library dataframes into a single dataframe
 df_library = pd.concat([df_zsreglau, df_kindle, df_borrowed, df_emeritus]).reset_index(drop=True)
 
 # DATA CLEANUP
@@ -45,8 +41,7 @@ df_library.drop(columns=[
     'review',
     'review_date',
     'copies',
-    'upc_isbn10',
-    'ean_isbn13'
+    'upc_isbn10'
     ], inplace=True)
 
 # Cast columns as correct data types while filling in any missing values
@@ -55,6 +50,10 @@ df_library['publish_date'] = pd.to_datetime(df_library['publish_date'], format='
 df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='coerce')
 df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='coerce')
 df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
+df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+
+df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+df_daily['date'] = pd.to_datetime(df_daily['date'], format='%m/%d/%Y', errors="coerce")
 
 # Strip whitespace from 'status' values
 df_library['status'] = df_library['status'].str.strip()
@@ -106,6 +105,16 @@ df_library['year_completed'] = df_library['completed'].apply(lambda x: x.year).a
 
 df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$', '')
 
+# Join in length column from df_library for books in progress
+
+df_dailies = pd.merge(df_daily, df_library, how = 'left', on='ean_isbn13')
+df_dailies = df_dailies[df_dailies['status'] == 'In progress']
+
+# Add percent_complete column
+
+df_dailies['percent_complete'] = df_dailies['end_page'] / df_dailies['length'] * 100
+df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
+
 # AGGREGATES
 # Create a dataframe that aggregates book and page totals and averages by year completed
 
@@ -130,156 +139,8 @@ df_aggregates[['avg_length', 'avg_duration', 'length_per_month', 'length_per_wee
 # Create a dataframe that includes only books I completed in 2022.
 df_2022 = df_library[(df_library['status'] == "Completed") & (df_library['year_completed'] == "2022")].sort_values(by='completed', ascending=False).reset_index(drop=True)
 
-# DATA VISUALIZATION
-# Create a table of the books read by year
-fig = plt.figure(figsize=(18,10), dpi=300)
-ax = plt.subplot()
-
-ncols = 8
-nrows = df_aggregates.shape[0]
-
-ax.set_xlim(0, ncols + 1)
-ax.set_ylim(0, nrows + 1)
-
-positions = [0.25, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]
-columns = ['year_completed', 'count', 'sum_length', 'avg_length', 'avg_duration', 'length_per_month', 'length_per_week', 'length_per_day']
-
-for i in range (nrows):
-    for j, column in enumerate(columns):
-        if j == 0:
-            ha = 'left'
-        else:
-            ha = 'center'
-        if column == 'count':
-            text_label = f'{df_aggregates[column].iloc[i]}'
-            weight = 'bold'
-        else:
-            text_label = f'{df_aggregates[column].iloc[i]}'
-        ax.annotate(
-            xy=(positions[j], i + .5),
-            text=text_label,
-            ha=ha,
-            va='center',
-        )
-
-column_names = ['Year', 'Books', 'Total Pages', 'Avg Length', 'Avg Days to Complete', 'Pages per Month', 'Pages per Week', 'Pages per Day']
-for index, c in enumerate(column_names):
-        if index == 0:
-            ha = 'left'
-        else:
-            ha = 'center'
-        ax.annotate(
-            xy=(positions[index], nrows + .25),
-            text=column_names[index],
-            ha=ha,
-            va='bottom',
-            weight='bold'
-        )
-
-# Add dividing lines
-ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [nrows, nrows], lw=1.5, color='black', marker='', zorder=4)
-ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [0, 0], lw=1.5, color='black', marker='', zorder=4)
-for x in range(1, nrows):
-    ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [x, x], lw=1.15, color='gray', ls=':', zorder=3 , marker='')
-
-ax.set_axis_off()
-plt.savefig(
-    '/Users/kserickson/Documents/zsr/figures/agg_books_by_year.png',
-    dpi=300,
-    transparent=True,
-    bbox_inches='tight'
-)
-
-# Create a table of the books I read in df_2022
-fig = plt.figure(figsize=(40,20), dpi=300)
-ax = plt.subplot()
-
-ncols = 7
-nrows = df_2022.shape[0]
-
-ax.set_xlim(0, ncols + 1)
-ax.set_ylim(0, nrows + 1)
-
-positions = [0.25, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]
-columns = ['title', 'creators', 'library', 'began', 'completed', 'duration', 'length']
-
-for i in range (nrows):
-    for j, column in enumerate(columns):
-        if j == 0:
-            ha = 'left'
-        else:
-            ha = 'center'
-        if column == 'duration':
-            text_label = f'{df_2022[column].iloc[i]}'
-            weight = 'bold'
-        else:
-            text_label = f'{df_2022[column].iloc[i]}'
-        ax.annotate(
-            xy=(positions[j], i + .5),
-            text=text_label,
-            ha=ha,
-            va='center',
-        )
-
-column_names = ['Title', 'Authors', 'Library', 'Began', 'Completed', 'Days', 'Pages']
-for index, c in enumerate(column_names):
-        if index == 0:
-            ha = 'left'
-        else:
-            ha = 'center'
-        ax.annotate(
-            xy=(positions[index], nrows + .25),
-            text=column_names[index],
-            ha=ha,
-            va='bottom',
-            weight='bold'
-        )
-
-# Add dividing lines
-ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [nrows, nrows], lw=1.5, color='black', marker='', zorder=4)
-ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [0, 0], lw=1.5, color='black', marker='', zorder=4)
-for x in range(1, nrows):
-    ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [x, x], lw=1.15, color='gray', ls=':', zorder=3 , marker='')
-
-ax.set_axis_off()
-plt.savefig(
-    '/Users/kserickson/Documents/zsr/figures/2022books.png',
-    dpi=300,
-    transparent=True,
-    bbox_inches='tight'
-)
-
-# Create a GANTT chart of books I read in 2022books
-
-# Get the list of books and their start and end dates
-books = df_2022[['began', 'completed']].values
-
-# Get the y-coordinates for each book
-y_coords = range(len(books))
-
-# Create the figure and axis
-fig, ax = plt.subplots()
-
-# Plot the bars using broken_barh
-for i, (start, end) in enumerate(books):
-    ax.broken_barh([(start, end-start)], (y_coords[i]-0.4, 0.8), facecolors='blue')
-
-# Set the y-axis tick labels to the book names
-ax.set_yticks(y_coords)
-ax.set_yticklabels(df_2022['title'])
-
-# Set the x-axis limits to cover the entire year
-ax.set_xlim(df_2022['began'].min(), df_2022['completed'].max())
-
-# Show the plot
-plt.savefig(
-    '/Users/kserickson/Documents/zsr/figures/2022books-gantt.png',
-    dpi=300,
-    transparent=True,
-    bbox_inches='tight'
-)
-# Write df_library to read_csv
-# df_library.to_csv('/Users/kserickson/Downloads/library.csv', index=False)
-
-# Display df_library
-# print(df_2022)
+# Write df_library to disk
+df_library.to_csv('/Users/kserickson/Documents/zsr/data/library.csv', index=False)
+df_aggregates.to_csv('/Users/kserickson/Documents/zsr/data/aggregates.csv', index=False)
+df_2022.to_csv('/Users/kserickson/Documents/zsr/data/2022.csv')
+df_dailies.to_csv('/Users/kserickson/Documents/zsr/data/dailies.csv')
