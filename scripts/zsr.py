@@ -108,7 +108,7 @@ df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$',
 # Join in length column from df_library for books in progress
 
 df_dailies = pd.merge(df_daily, df_library, how = 'left', on='ean_isbn13')
-df_dailies = df_dailies[df_dailies['status'] == 'In progress']
+df_dailies = df_dailies[df_dailies['status'].isin(['In progress', 'Completed'])]
 
 # Add percent_complete column
 
