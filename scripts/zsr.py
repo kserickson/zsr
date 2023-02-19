@@ -115,6 +115,10 @@ df_dailies = df_dailies[df_dailies['status'].isin(['In progress', 'Completed'])]
 df_dailies['percent_complete'] = df_dailies['end_page'] / df_dailies['length'] * 100
 df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
 
+# Add daily_pages column
+
+df_dailies['daily_pages'] = df_dailies['end_page'] - df_dailies['start_page']
+
 # AGGREGATES
 # Create a dataframe that aggregates book and page totals and averages by year completed
 
