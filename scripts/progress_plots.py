@@ -7,6 +7,12 @@ import seaborn as sns
 df_2022 = pd.read_csv('/Users/kserickson/Documents/zsr/data/2022.csv')
 df_dailies = pd.read_csv('/Users/kserickson/Documents/zsr/data/dailies.csv')
 
+# Cast columns as correct data types while filling in any missing values
+df_dailies['ean_isbn13'] = df_dailies['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+df_dailies['date'] = pd.to_datetime(df_dailies['date'], format='%Y-%m-%d', errors="coerce")
+
+print(df_dailies.dtypes)
+
 # Create a GANTT chart of books I read in 2022
 
 # Get the list of books and their start and end dates
@@ -49,25 +55,45 @@ books = df_2022[['began', 'completed']].values
 #    bbox_inches='tight'
 #)
 
-print(df_dailies.loc[:, ['title_x', 'percent_complete', 'daily_pages']])
+print(df_dailies.loc[:, ['title_x', 'date', 'percent_complete', 'daily_pages']])
+
+min_date = df_dailies['date'].min()
+max_date = df_dailies['date'].max()
+
+all_dates = pd.date_range(start=min_date, end=max_date, freq='D')
+
+df_dates = pd.DataFrame({'date': all_dates})
+print(df_dailies.dtypes)
+print(df_dates.dtypes)
+
+df_dailies = pd.merge(df_dates, df_dailies, on='date', how='left').fillna(0)
 
 titles = df_dailies['title_x'].unique()
+grouped = df_dailies.groupby(['date', 'title_x'])['daily_pages'].sum().unstack()
 
 # create a line chart
 fig, ax1 = plt.subplots()
+
 for title in titles:
     data = df_dailies[df_dailies['title_x'] == title]
     ax1.plot(data['date'], data['percent_complete'], label=title)
 
 ax1.set_xlabel('Date')
+ax1.set_xticks(df_dailies['date'])
+ax1.set_xticklabels(ax1.get_xticklabels(), rotation=90)
 ax1.set_ylabel('Percent Complete')
 
-ax1.legend()
+ax1.legend(fontsize=8, loc='upper left', bbox_to_anchor=(1.15, 1), borderaxespad=0.)
 
 # create a stacked bar chart
 ax2 = ax1.twinx()
-ax2.bar(df_dailies['date'], df_dailies['daily_pages'], color='blue', alpha=0.5)
-ax2.set_ylabel('Daily Pages', color='blue')
+# left = len(titles) * [0]
+for idx, title in enumerate(titles):
+    plt.bar(grouped.index, grouped[title])
+
+ax2.set_ylabel('Daily Pages')
+
+plt.title('Reading Progress 2023')
 
 # show the plot
 plt.savefig(
