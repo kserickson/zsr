@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import datetime
 
 # DATA IMPORT
@@ -107,8 +108,11 @@ df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$',
 
 # Join in length column from df_library for books in progress
 
-df_dailies = pd.merge(df_daily, df_library, how = 'left', on='ean_isbn13')
+df_dailies = pd.merge(df_daily, df_library, how = 'left', on=['ean_isbn13', 'title'])
 df_dailies = df_dailies[df_dailies['status'].isin(['In progress', 'Completed'])]
+
+drop_columns = ['creators', 'publisher', 'publish_date', 'status', 'began', 'completed', 'added', 'library', 'duration','year_completed']
+df_dailies = df_dailies.drop(columns=drop_columns)
 
 # Add percent_complete column
 
@@ -118,6 +122,19 @@ df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
 # Add daily_pages column
 
 df_dailies['daily_pages'] = df_dailies['end_page'] - df_dailies['start_page']
+
+# Add rows for days when I didn't read any pages
+
+min_date = df_dailies['date'].min()
+max_date = df_dailies['date'].max()
+
+all_dates = pd.date_range(start=min_date, end=max_date, freq='D')
+
+df_dates = pd.DataFrame({'date': all_dates})
+
+df_dailies = pd.merge(df_dates, df_dailies, on='date', how='left')
+numeric_cols = df_dailies.select_dtypes(include=['int64', 'float64']).columns
+df_dailies[numeric_cols] = df_dailies[numeric_cols].fillna(0)
 
 # AGGREGATES
 # Create a dataframe that aggregates book and page totals and averages by year completed
