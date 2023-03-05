@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from matplotlib import font_manager
 import seaborn as sns
 
 # DATA IMPORT
@@ -14,6 +15,26 @@ df_dailies = pd.read_csv('/Users/kserickson/Documents/zsr/data/dailies.csv')
 df_dailies['ean_isbn13'] = df_dailies['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
 df_dailies['date'] = pd.to_datetime(df_dailies['date'], format='%Y-%m-%d', errors="coerce")
 df_dailies['title'] = df_dailies['title'].replace(np.nan, '')
+
+# STYLING
+titlefont = {
+    'family': 'Arial',
+    'color': 'black',
+    'weight': 'bold',
+    'size': 10,
+}
+
+axesfont = {
+    'family': 'Arial',
+    'color': 'black',
+    'size': 9,
+}
+
+labelfonts = {
+    'family': 'Arial',
+    'color': 'black',
+    'size': 8,
+}
 
 # DATA VISUALIZATION
 # Create a GANTT chart of books I read in 2022
@@ -50,23 +71,29 @@ df_dailies['title'] = df_dailies['title'].replace(np.nan, '')
 
 titles = df_dailies['title'].unique()
 grouped = df_dailies.groupby(['date', 'title'])['daily_pages'].sum().unstack()
+colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
 
 # create a line chart
 fig, ax1 = plt.subplots()
 
-for title in titles:
+for i, title in enumerate(titles):
     data = df_dailies[df_dailies['title'] == title]
-    ax1.plot(data['date'], data['percent_complete'], label=title)
+    ax1.plot(data['date'], data['percent_complete'], label=title, color=colors[i])
 
 # create a stacked bar chart
 ax2 = ax1.twinx()
 for idx, title in enumerate(titles):
-    plt.bar(grouped.index, grouped[title])
+    plt.bar(grouped.index, grouped[title], color=colors[idx])
 
 # label the axes
-ax1.set_ylabel('Percent Complete')
-ax2.set_ylabel('Daily Pages')
-ax1.set_xlabel('Date')
+ax1.set_xlabel('Date', fontdict=axesfont)
+
+ax1.set_ylabel('Percent Complete', fontdict=axesfont)
+ax1.yaxis.set_tick_params(labelsize=6)
+ax1.set_ylim(-.5)
+
+ax2.set_ylabel('Daily Pages', fontdict=axesfont)
+ax2.yaxis.set_tick_params(labelsize=6)
 
 # add tick labels for the first date of each month
 last_month = None
@@ -83,13 +110,13 @@ for date in grouped.index:
 # set the tick labels
 ax1.xaxis.set_major_locator(mdates.DayLocator())
 ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-ax1.set_xticklabels(tick_labels)
+ax1.set_xticklabels(tick_labels, fontdict=labelfonts)
 
 # Add a legend
-ax1.legend(fontsize=8, loc='upper left', bbox_to_anchor=(1.15, 1), borderaxespad=0.)
+ax1.legend(fontsize=6, bbox_to_anchor=(0, -0.25, 1, 1), borderaxespad=0, ncol=2, frameon=False)
 
 # Add a title
-plt.title('Reading Progress 2023')
+plt.title('2023 YEAR IN READING', fontdict=titlefont, loc='left')
 
 # Show the plot
 plt.savefig(
