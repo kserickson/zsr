@@ -88,6 +88,8 @@ df_library.loc[df_library['title'] == "Game Theory: A Very Short Introduction (V
 df_library.loc[df_library['title'] == "Applied Mainline Economics", 'length'] = 167
 df_library.loc[df_library['title'] == "Introduction to IT Privacy", 'length'] = 271
 df_library.loc[df_library['title'] == "The Hobbit", 'length'] = 317
+df_library.loc[df_library['title'] == "Deschooling Society (Open Forum)", 'length'] = 116
+df_library.loc[df_library['title'] == "The Sovereignty of Good (Routledge Great Minds)", 'length'] = 105
 
 # Check for missing page lengths in any new books
 df_missing = df_library[(df_library['length'] == 0)]
