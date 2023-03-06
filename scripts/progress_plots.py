@@ -70,8 +70,9 @@ labelfonts = {
 # Create a line chart with multiple series that shows percent_complete over time for each unique ISBN and a stacked bar chart that shows pages read per day
 
 titles = df_dailies['title'].unique()
-grouped = df_dailies.groupby(['date', 'title'])['daily_pages'].sum().unstack()
+grouped = df_dailies.groupby(['date', 'title'])['daily_pages'].sum().unstack().fillna(0)
 colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
+grouped.to_csv('/Users/kserickson/Documents/zsr/data/grouped.csv')
 
 # create a line chart
 fig, ax1 = plt.subplots()
@@ -82,8 +83,14 @@ for i, title in enumerate(titles):
 
 # create a stacked bar chart
 ax2 = ax1.twinx()
+
+# initialize vertical offset for stacked bar chart
+y_offset = np.zeros(len(grouped))
+
+# plot bars
 for idx, title in enumerate(titles):
-    plt.bar(grouped.index, grouped[title], color=colors[idx])
+    plt.bar(grouped.index, grouped[title], bottom=y_offset, color=colors[idx])
+    y_offset = y_offset + grouped[title]
 
 # label the axes
 ax1.set_xlabel('Date', fontdict=axesfont)
