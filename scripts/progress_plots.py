@@ -69,10 +69,15 @@ labelfonts = {
 
 # Create a line chart with multiple series that shows percent_complete over time for each unique ISBN and a stacked bar chart that shows pages read per day
 
+# Create an array of unique titles
 titles = df_dailies['title'].unique()
+
+# Remove title that was added to df_dailies when rows were created for day with no pages read
+titles = titles[titles != '']
+
+# Create DataFrame for stacked bar chart
 grouped = df_dailies.groupby(['date', 'title'])['daily_pages'].sum().unstack().fillna(0)
 colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
-grouped.to_csv('/Users/kserickson/Documents/zsr/data/grouped.csv')
 
 # create a line chart
 fig, ax1 = plt.subplots()
