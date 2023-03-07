@@ -12,7 +12,7 @@ df_dailies = pd.read_csv('/Users/kserickson/Documents/zsr/data/dailies.csv')
 
 # DATA CLEANUP
 # Cast columns as correct data types while filling in any missing values
-df_dailies['ean_isbn13'] = df_dailies['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+df_dailies['ean_isbn13'] = df_dailies['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
 df_dailies['date'] = pd.to_datetime(df_dailies['date'], format='%Y-%m-%d', errors="coerce")
 df_dailies['title'] = df_dailies['title'].replace(np.nan, '')
 
@@ -67,8 +67,7 @@ labelfonts = {
 #    bbox_inches='tight'
 #)
 
-# Create a line chart with multiple series that shows percent_complete over time for each unique ISBN and a stacked bar chart that shows pages read per day
-
+# PLOTS
 # Create an array of unique titles
 titles = df_dailies['title'].unique()
 
@@ -79,33 +78,32 @@ titles = titles[titles != '']
 grouped = df_dailies.groupby(['date', 'title'])['daily_pages'].sum().unstack().fillna(0)
 colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
 
-# create a line chart
+# LINE PLOT
+# Create a line chart
 fig, ax1 = plt.subplots()
 
 for i, title in enumerate(titles):
     data = df_dailies[df_dailies['title'] == title]
     ax1.plot(data['date'], data['percent_complete'], label=title, color=colors[i])
 
-# create a stacked bar chart
+# STACKED BAR PLOT
+# Create a stacked bar chart
 ax2 = ax1.twinx()
 
-# initialize vertical offset for stacked bar chart
+# Initialize vertical offset for stacked bar chart
 y_offset = np.zeros(len(grouped))
 
-# plot bars
+# Plot bars
 for idx, title in enumerate(titles):
     plt.bar(grouped.index, grouped[title], bottom=y_offset, color=colors[idx])
     y_offset = y_offset + grouped[title]
 
-# label the axes
+# Label and style the axes
+# x-axis
 ax1.set_xlabel('Date', fontdict=axesfont)
-
-ax1.set_ylabel('Percent Complete', fontdict=axesfont)
-ax1.yaxis.set_tick_params(labelsize=6)
-ax1.set_ylim(-.5)
-
-ax2.set_ylabel('Daily Pages', fontdict=axesfont)
-ax2.yaxis.set_tick_params(labelsize=6)
+start_date = grouped.index.min() - pd.Timedelta(days=1)
+end_date = grouped.index.max() + pd.Timedelta(days=1)
+ax1.set_xlim(start_date, end_date)
 
 # add tick labels for the first date of each month
 last_month = None
@@ -122,7 +120,14 @@ for date in grouped.index:
 # set the tick labels
 ax1.xaxis.set_major_locator(mdates.DayLocator())
 ax1.xaxis.set_major_formatter(mdates.DateFormatter('%b %d'))
-ax1.set_xticklabels(tick_labels, fontdict=labelfonts)
+ax1.set_xticklabels(tick_labels, ha='left', fontdict=labelfonts)
+
+# y-axes
+ax1.set_ylabel('Percent Complete', fontdict=axesfont)
+ax1.yaxis.set_tick_params(labelsize=6)
+
+ax2.set_ylabel('Daily Pages', fontdict=axesfont)
+ax2.yaxis.set_tick_params(labelsize=6)
 
 # Add a legend
 ax1.legend(fontsize=6, bbox_to_anchor=(0, -0.25, 1, 1), borderaxespad=0, ncol=2, frameon=False)

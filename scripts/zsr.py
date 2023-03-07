@@ -51,9 +51,9 @@ df_library['publish_date'] = pd.to_datetime(df_library['publish_date'], format='
 df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='coerce')
 df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='coerce')
 df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
-df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
 
-df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str).str.replace(r'\.0$', '')
+df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
 df_daily['date'] = pd.to_datetime(df_daily['date'], format='%m/%d/%Y', errors="coerce")
 
 # Strip whitespace from 'status' values
@@ -106,7 +106,7 @@ df_library['duration'] = df_library['duration'].round().fillna(0).astype(int)
 # Extract the year from the completed date and add it to a new column: year_completed
 df_library['year_completed'] = df_library['completed'].apply(lambda x: x.year).astype(str)
 
-df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$', '')
+df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$', '', regex=True)
 
 # Join in length column from df_library for books in progress
 
