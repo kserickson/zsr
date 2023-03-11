@@ -90,6 +90,7 @@ df_library.loc[df_library['title'] == "Introduction to IT Privacy", 'length'] = 
 df_library.loc[df_library['title'] == "The Hobbit", 'length'] = 317
 df_library.loc[df_library['title'] == "Deschooling Society (Open Forum)", 'length'] = 116
 df_library.loc[df_library['title'] == "The Sovereignty of Good (Routledge Great Minds)", 'length'] = 105
+df_library.loc[df_library['title'] == "Tools for Conviviality", 'length'] = 110
 
 # Check for missing page lengths in any new books
 df_missing = df_library[(df_library['length'] == 0)]
