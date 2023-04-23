@@ -88,14 +88,42 @@ df_library.loc[df_library['title'] == "Game Theory: A Very Short Introduction (V
 df_library.loc[df_library['title'] == "Applied Mainline Economics", 'length'] = 167
 df_library.loc[df_library['title'] == "Introduction to IT Privacy", 'length'] = 271
 df_library.loc[df_library['title'] == "The Hobbit", 'length'] = 317
-df_library.loc[df_library['title'] == "Deschooling Society (Open Forum)", 'length'] = 116
-df_library.loc[df_library['title'] == "The Sovereignty of Good (Routledge Great Minds)", 'length'] = 105
-df_library.loc[df_library['title'] == "Tools for Conviviality", 'length'] = 110
+df_library.loc[df_library['title'] == "Scaling People", 'length'] = 480
 
-# Check for missing page lengths in any new books
-df_missing = df_library[(df_library['length'] == 0)]
-print("Here is a list of books with missing page lengths:")
-print(df_missing.loc[:, ['title', 'length']])
+# Add authors for books with missing 'creators' values
+
+# Add publishers for books with missing 'publisher' values
+df_library.loc[df_library['title'] == "American Conservatism", 'publisher'] = "Library of America"
+df_library.loc[df_library['title'] == "In the Shadow of Tomorrow", 'publisher'] = "Cluny Media"
+df_library.loc[df_library['title'] == "The Wild Orchid", 'publisher'] = "Cluny Media"
+
+# Add publication dates for books with missing 'publish_date' values
+df_library.loc[df_library['title'] == "Contingency, Irony, and Solidarity", 'publish_date'] = "1989-05-01"
+
+# Check for missing page lengths
+df_missing_pgs = df_library[(df_library['length'] == 0)]
+print("Books with missing page lengths:")
+print(df_missing_pgs.loc[:, ['title', 'length']])
+
+# Check for missing authors
+df_missing_authors = df_library[df_library['creators'].isna()]
+print("Books with missing authors:")
+print(df_missing_authors.loc[:, ['title', 'creators']])
+
+# Check for missing publishers
+df_missing_publishers = df_library[df_library['publisher'].isna()]
+print("Books with missing publishers:")
+print(df_missing_publishers.loc[:, ['title', 'publisher']])
+
+# Check for missing publication dates
+df_missing_dates = df_library[df_library['publish_date'].isna()]
+print("Books with missing publication dates:")
+print(df_missing_dates.loc[:, ['title', 'publish_date']])
+
+# Check for missing ISBN 13
+df_missing_isbn13s = df_library[df_library['ean_isbn13'] == "nan"]
+print("Books with missing ISBN 13s:")
+print(df_missing_isbn13s.loc[:, ['title', 'ean_isbn13']])
 
 # DERIVED COLUMNS
 # Compute the number of days between the began and completed dates and add it to a new column: duration
