@@ -89,6 +89,7 @@ df_library.loc[df_library['title'] == "Applied Mainline Economics", 'length'] = 
 df_library.loc[df_library['title'] == "Introduction to IT Privacy", 'length'] = 271
 df_library.loc[df_library['title'] == "The Hobbit", 'length'] = 317
 df_library.loc[df_library['title'] == "Scaling People", 'length'] = 480
+df_library.loc[df_library['title'] == "Beauty", 'length'] = 221
 
 # Add authors for books with missing 'creators' values
 
