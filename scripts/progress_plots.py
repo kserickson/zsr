@@ -48,7 +48,7 @@ colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
 
 # LINE PLOT
 # Create a line chart
-fig, ax1 = plt.subplots()
+fig, ax1 = plt.subplots(figsize=(12, 6))
 
 for i, title in enumerate(titles):
     data = df_dailies[df_dailies['title'] == title]
@@ -98,7 +98,7 @@ ax2.set_ylabel('Daily Pages', fontdict=axesfont)
 ax2.yaxis.set_tick_params(labelsize=6)
 
 # Add a legend
-ax1.legend(fontsize=6, bbox_to_anchor=(0, -0.25, 1, 1), borderaxespad=0, ncol=2, frameon=False)
+ax1.legend(fontsize=6, bbox_to_anchor=(0, -0.25, 1, 1), borderaxespad=0, ncol=3, frameon=False)
 
 # Add a title
 plt.title('2023 YEAR IN READING', fontdict=titlefont, loc='left')
@@ -108,5 +108,6 @@ plt.savefig(
     '/Users/kserickson/Documents/zsr/figures/progress-over-time.png',
     dpi=300,
     transparent=True,
-    bbox_inches='tight'
+    bbox_inches='tight',
+    facecolor='white'
 )
