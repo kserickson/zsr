@@ -1,0 +1,48 @@
+{
+    "missing_lengths": {
+        "The Collected Works, Vol. 8": 1251,
+        "Upheavals of Thought: The Intelligence of Emotions": 751,
+        "Political Liberalism": 464,
+        "The Ethnic Origins of Nations": 312,
+        "Montesquieu And Rousseau: Forerunners Of Sociology": 155,
+        "Truth and Method. Second, Revised Edition.": 594,
+        "The Last Unicorn (Deluxe Edition)": 289,
+        "The Dream Machine": 527,
+        "The Revolt of the Public": 448,
+        "The Art of Doing Science and Engineering": 432,
+        "August": 304,
+        "American Poetry: The Nineteenth Century. Volumes I &amp; II. [2 volumes. Vol. 1: Philip Freneau to Walt Whitman. Vol. 2: Herman Melville to Stickney; American Indian Poetry; Folk Songs and Spirituals]": 1050,
+        "American Earth: Environmental Writing Since Thoreau": 1047,
+        "Harry Potter and the Order of the Phoenix": 896,
+        "In the Shadow of Tomorrow": 167,
+        "Pieces of the Action": 376,
+        "Kenogaia (a Gnostic Tale)": 432,
+        "The Org: How The Office Really Works": 320,
+        "Grand Hotel Abyss": 336,
+        "We Have Never Been Modern": 157,
+        "Snow": 320,
+        "Courage to Grow": 224,
+        "In Praise of Older Women The Amorous Recollections of Andras Vajda by Vizinczey, Stephen ( Author ) ON Mar-04-2010, Paperback": 181,
+        "The Collected Works of John Stuart Mill, Vol. 7": 1251,
+        "Game Theory: A Very Short Introduction (Very Short Introductions) By Ken Binmore": 184,
+        "Applied Mainline Economics": 167,
+        "Introduction to IT Privacy": 271,
+        "The Hobbit": 317,
+        "Scaling People": 480,
+        "Beauty": 221
+    },
+    "missing_isbn13": {
+        "Title1": "ISBN1"
+    },
+    "missing_creators": {
+        "Title1": "Author1"
+    },
+    "missing_publishers": {
+        "American Conservatism": "Library of America",
+        "In the Shadow of Tomorrow": "Cluny Media",
+        "The Wild Orchid": "Cluny Media"
+    },
+    "missing_publish_dates": {
+        "Contingency, Irony, and Solidarity": "1989-05-01"
+    }
+}

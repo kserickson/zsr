@@ -1,199 +1,239 @@
 import pandas as pd
 import numpy as np
 import datetime
+import json
+import os
+import logging
 
-# DATA IMPORT
+# CONSTANTS
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
+MISSING_DATA_FILE = os.path.join(DATA_FOLDER, 'missing_data.json')
+CONFIG_FILE = os.path.join(ROOT_DIR, 'config.json')
 
-# Read libib data exports into data frames
-df_zsreglau = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_zsreglau.csv')
-df_kindle = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_kindle.csv')
-df_borrowed = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_borrowed.csv')
-df_emeritus = pd.read_csv('/Users/kserickson/Documents/zsr/data/library_emeritus.csv')
-df_daily = pd.read_csv('/Users/kserickson/Documents/zsr/data/daily_log.csv')
+# FUNCTIONS
+def load_missing_data(filename=MISSING_DATA_FILE):
+    try:
+        with open(filename, 'r') as file:
+            missing_data = json.load(file)
+        return missing_data
+    except FileNotFoundError as e:
+        logging.error(f"Missing data file '{filename}' not found: {e}")
+        return None
 
-# Add columns to dataframe indicating which library they came from
-df_zsreglau['library'] = 'zsreglau'
-df_kindle['library'] = 'kindle'
-df_borrowed['library'] = 'borrowed'
-df_emeritus['library'] = 'emeritus'
-
-# Concatenate all four library dataframes into a single dataframe
-df_library = pd.concat([df_zsreglau, df_kindle, df_borrowed, df_emeritus]).reset_index(drop=True)
-
-# DATA CLEANUP
-
-# Drop unneeded columns
-df_library.drop(columns=[
-    'item_type',
-    'first_name',
-    'last_name',
-    'description',
-    'group',
-    'tags',
-    'notes',
-    'price',
-    'number_of_discs',
-    'number_of_players',
-    'age_group',
-    'ensemble',
-    'aspect_ratio',
-    'esrb',
-    'rating',
-    'review',
-    'review_date',
-    'copies',
-    'upc_isbn10'
+def clean_data(df_library, missing_data):
+    # Drop unneeded columns
+    df_library.drop(columns=[
+        'item_type',
+        'first_name',
+        'last_name',
+        'description',
+        'group',
+        'tags',
+        'notes',
+        'price',
+        'number_of_discs',
+        'number_of_players',
+        'age_group',
+        'ensemble',
+        'aspect_ratio',
+        'esrb',
+        'rating',
+        'review',
+        'review_date',
+        'copies',
+        'upc_isbn10'
     ], inplace=True)
 
-# Cast columns as correct data types while filling in any missing values
-df_library['length'] = df_library['length'].fillna(0).astype(int)
-df_library['publish_date'] = pd.to_datetime(df_library['publish_date'], format='%Y-%m-%d', errors="coerce")
-df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='coerce')
-df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='coerce')
-df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
-df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
+    # Strip whitespace from the 'status' column
+    df_library['status'] = df_library['status'].str.strip()
 
-df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
-df_daily['date'] = pd.to_datetime(df_daily['date'], format='%m/%d/%Y', errors="coerce")
+    # Cast columns as correct data types while filling in any missing values
+    df_library['length'] = df_library['length'].fillna(0).astype(int)
+    df_library['publish_date'] = pd.to_datetime(df_library['publish_date'], format='%Y-%m-%d', errors="coerce")
+    df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='coerce')
+    df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='coerce')
+    df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
+    df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
 
-# Strip whitespace from 'status' values
-df_library['status'] = df_library['status'].str.strip()
+    # Fill in missing data using the missing_data dictionary
+    if missing_data is not None:
+        # Fill in missing lengths
+        if 'missing_lengths' in missing_data:
+            for title, length in missing_data['missing_lengths'].items():
+                df_library.loc[df_library['title'] == title, 'length'] = length
 
-# Add page lengths for books with missing 'length' values
-df_library.loc[df_library['title'] == "The Collected Works, Vol. 8", 'length'] = 1251
-df_library.loc[df_library['title'] == "Upheavals of Thought: The Intelligence of Emotions", 'length'] = 751
-df_library.loc[df_library['title'] == "Political Liberalism", 'length'] = 464
-df_library.loc[df_library['title'] == "The Ethnic Origins of Nations", 'length'] = 312
-df_library.loc[df_library['title'] == "Montesquieu And Rousseau: Forerunners Of Sociology", 'length'] = 155
-df_library.loc[df_library['title'] == "Truth and Method. Second, Revised Edition.", 'length'] = 594
-df_library.loc[df_library['title'] == "The Last Unicorn (Deluxe Edition)", 'length'] = 289
-df_library.loc[df_library['title'] == "The Dream Machine", 'length'] = 527
-df_library.loc[df_library['title'] == "The Revolt of the Public", 'length'] = 448
-df_library.loc[df_library['title'] == "The Art of Doing Science and Engineering", 'length'] = 432
-df_library.loc[df_library['title'] == "August", 'length'] = 304
-df_library.loc[df_library['title'] == "American Poetry: The Nineteenth Century. Volumes I &amp; II. [2 volumes. Vol. 1: Philip Freneau to Walt Whitman. Vol. 2: Herman Melville to Stickney; American Indian Poetry; Folk Songs and Spirituals]", 'length'] = 1050
-df_library.loc[df_library['title'] == "American Earth: Environmental Writing Since Thoreau", 'length'] = 1047
-df_library.loc[df_library['title'] == "Harry Potter and the Order of the Phoenix", 'length'] = 896
-df_library.loc[df_library['title'] == "In the Shadow of Tomorrow", 'length'] = 167
-df_library.loc[df_library['title'] == "Pieces of the Action", 'length'] = 376
-df_library.loc[df_library['title'] == "Kenogaia (a Gnostic Tale)", 'length'] = 432
-df_library.loc[df_library['title'] == "The Org: How The Office Really Works", 'length'] = 320
-df_library.loc[df_library['title'] == "Grand Hotel Abyss", 'length'] = 336
-df_library.loc[df_library['title'] == "We Have Never Been Modern", 'length'] = 157
-df_library.loc[df_library['title'] == "Snow", 'length'] = 320
-df_library.loc[df_library['title'] == "Courage to Grow", 'length'] = 224
-df_library.loc[df_library['title'] == "In Praise of Older Women The Amorous Recollections of Andras Vajda by Vizinczey, Stephen ( Author ) ON Mar-04-2010, Paperback", 'length'] = 181
-df_library.loc[df_library['title'] == "The Collected Works of John Stuart Mill, Vol. 7", 'length'] = 1251
-df_library.loc[df_library['title'] == "Game Theory: A Very Short Introduction (Very Short Introductions) By Ken Binmore", 'length'] = 184
-df_library.loc[df_library['title'] == "Applied Mainline Economics", 'length'] = 167
-df_library.loc[df_library['title'] == "Introduction to IT Privacy", 'length'] = 271
-df_library.loc[df_library['title'] == "The Hobbit", 'length'] = 317
-df_library.loc[df_library['title'] == "Scaling People", 'length'] = 480
-df_library.loc[df_library['title'] == "Beauty", 'length'] = 221
+        # Fill in missing ISBN13 values
+        if 'missing_isbn13' in missing_data:
+            for title, isbn13 in missing_data['missing_isbn13'].items():
+                df_library.loc[df_library['title'] == title, 'ean_isbn13'] = isbn13
 
-# Add authors for books with missing 'creators' values
+        # Fill in missing publishers
+        if 'missing_publishers' in missing_data:
+            for title, publisher in missing_data['missing_publishers'].items():
+                df_library.loc[df_library['title'] == title, 'publisher'] = publisher
 
-# Add publishers for books with missing 'publisher' values
-df_library.loc[df_library['title'] == "American Conservatism", 'publisher'] = "Library of America"
-df_library.loc[df_library['title'] == "In the Shadow of Tomorrow", 'publisher'] = "Cluny Media"
-df_library.loc[df_library['title'] == "The Wild Orchid", 'publisher'] = "Cluny Media"
+        # Fill in missing publication dates
+        if 'missing_publish_dates' in missing_data:
+            for title, publish_date in missing_data['missing_publish_dates'].items():
+                df_library.loc[df_library['title'] == title, 'publish_date'] = publish_date
 
-# Add publication dates for books with missing 'publish_date' values
-df_library.loc[df_library['title'] == "Contingency, Irony, and Solidarity", 'publish_date'] = "1989-05-01"
+    # Check for missing page lengths
+    df_missing_pgs = df_library[(df_library['length'] == 0)]
+    if not df_missing_pgs.empty:
+        logging.warning("Books with missing page lengths:")
+        logging.warning(df_missing_pgs.loc[:, ['title', 'length']])
 
-# Check for missing page lengths
-df_missing_pgs = df_library[(df_library['length'] == 0)]
-print("Books with missing page lengths:")
-print(df_missing_pgs.loc[:, ['title', 'length']])
+    # Check for missing authors
+    df_missing_authors = df_library[df_library['creators'].isna()]
+    if not df_missing_authors.empty:
+        logging.warning("Books with missing authors:")
+        logging.warning(df_missing_authors.loc[:, ['title', 'creators']])
 
-# Check for missing authors
-df_missing_authors = df_library[df_library['creators'].isna()]
-print("Books with missing authors:")
-print(df_missing_authors.loc[:, ['title', 'creators']])
+    # Check for missing publishers
+    df_missing_publishers = df_library[df_library['publisher'].isna()]
+    if not df_missing_publishers.empty:
+        logging.warning("Books with missing publishers:")
+        logging.warning(df_missing_publishers.loc[:, ['title', 'publisher']])
 
-# Check for missing publishers
-df_missing_publishers = df_library[df_library['publisher'].isna()]
-print("Books with missing publishers:")
-print(df_missing_publishers.loc[:, ['title', 'publisher']])
+    # Check for missing publication dates
+    df_missing_dates = df_library[df_library['publish_date'].isna()]
+    if not df_missing_dates.empty:
+        logging.warning("Books with missing publication dates:")
+        logging.warning(df_missing_dates.loc[:, ['title', 'publish_date']])
 
-# Check for missing publication dates
-df_missing_dates = df_library[df_library['publish_date'].isna()]
-print("Books with missing publication dates:")
-print(df_missing_dates.loc[:, ['title', 'publish_date']])
+    # Check for missing ISBN 13
+    df_missing_isbn13s = df_library[df_library['ean_isbn13'] == "nan"]
+    if not df_missing_isbn13s.empty:
+        logging.warning("Books with missing ISBN 13s:")
+        logging.warning(df_missing_isbn13s.loc[:, ['title', 'ean_isbn13']])
 
-# Check for missing ISBN 13
-df_missing_isbn13s = df_library[df_library['ean_isbn13'] == "nan"]
-print("Books with missing ISBN 13s:")
-print(df_missing_isbn13s.loc[:, ['title', 'ean_isbn13']])
+    # Return the cleaned DataFrame
+    return df_library
 
-# DERIVED COLUMNS
-# Compute the number of days between the began and completed dates and add it to a new column: duration
+def add_derived_columns(df_library, df_daily):
+    # Type converstions for df_daily before merging
+    df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str)
+    df_daily['title'] = df_daily['title'].astype(str)
+    df_daily['date'] = pd.to_datetime(df_daily['date'], format='%Y-%m-%d', errors='coerce')
 
-df_library['duration'] = (df_library['completed'] - df_library['began']).apply(lambda x: x.days + 1)
+    # Compute the number of days between the began and completed dates and add it to a new column: duration
+    df_library['duration'] = (df_library['completed'] - df_library['began']).apply(lambda x: x.days + 1)
+    df_library['duration'] = df_library['duration'].round().fillna(0).astype(int)
 
-df_library['duration'] = df_library['duration'].round().fillna(0).astype(int)
+    # Extract the year from the completed date and add it to a new column: year_completed
+    df_library['year_completed'] = df_library['completed'].apply(lambda x: x.year).astype(str)
+    df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$', '', regex=True)
 
-# Extract the year from the completed date and add it to a new column: year_completed
-df_library['year_completed'] = df_library['completed'].apply(lambda x: x.year).astype(str)
+    # Create new DataFrame by merging df_daily and df_library, filter to books in progress only
+    df_dailies = pd.merge(df_daily, df_library, how='left', on=['ean_isbn13', 'title'])
+    df_dailies = df_dailies[df_dailies['status'].isin(['In progress', 'Completed'])]
 
-df_library['year_completed'] = df_library['year_completed'].str.replace(r'\.0$', '', regex=True)
+    drop_columns = ['creators', 'publisher', 'publish_date', 'status', 'began', 'completed', 'added', 'library', 'duration', 'year_completed']
+    df_dailies = df_dailies.drop(columns=drop_columns)
 
-# Join in length column from df_library for books in progress
+    # Add percent_complete column
+    df_dailies['percent_complete'] = df_dailies['end_page'] / df_dailies['length'] * 100
+    df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
 
-df_dailies = pd.merge(df_daily, df_library, how = 'left', on=['ean_isbn13', 'title'])
-df_dailies = df_dailies[df_dailies['status'].isin(['In progress', 'Completed'])]
+    # Add daily_pages column
+    df_dailies['daily_pages'] = df_dailies['end_page'] - df_dailies['start_page']
 
-drop_columns = ['creators', 'publisher', 'publish_date', 'status', 'began', 'completed', 'added', 'library', 'duration','year_completed']
-df_dailies = df_dailies.drop(columns=drop_columns)
+    # Add rows for days when no pages were read
+    min_date = df_dailies['date'].min()
+    max_date = df_dailies['date'].max()
+    all_dates = pd.date_range(start=min_date, end=max_date, freq='D')
+    df_dates = pd.DataFrame({'date': all_dates})
+    df_dailies = pd.merge(df_dates, df_dailies, on='date', how='left')
+    numeric_cols = df_dailies.select_dtypes(include=['int64', 'float64']).columns
+    df_dailies[numeric_cols] = df_dailies[numeric_cols].fillna(0)
 
-# Add percent_complete column
+    return df_dailies
 
-df_dailies['percent_complete'] = df_dailies['end_page'] / df_dailies['length'] * 100
-df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
+def add_aggregate_columns(df_library):
+    # Create a dataframe that aggregates book and page totals and averages by year completed
+    df_completed = df_library[(df_library['status'] == "Completed") & (df_library['year_completed'] != "nan")].sort_values(by='year_completed')
+    df_aggregates = df_completed.groupby('year_completed').agg(
+        count=('year_completed', 'count'),
+        sum_length=('length', 'sum'),
+        avg_length=('length', 'mean'),
+        avg_duration=('duration', 'mean'),
+        length_per_month=('length', lambda x: x.sum() / 12),
+        length_per_week=('length', lambda x: x.sum() / 52),
+        length_per_day=('length', lambda x: x.sum() / 365)
+    ).reset_index()
 
-# Add daily_pages column
+    df_aggregates[['avg_length', 'avg_duration', 'length_per_month', 'length_per_week', 'length_per_day']] = df_aggregates[['avg_length', 'avg_duration', 'length_per_month', 'length_per_week', 'length_per_day']].apply(lambda x: x.round(2))
 
-df_dailies['daily_pages'] = df_dailies['end_page'] - df_dailies['start_page']
+    return df_aggregates
 
-# Add rows for days when I didn't read any pages
+def save_dataframes(df_library, df_aggregates, df_dailies, config):
+    # Access 'output_dir' from the global configuration
+    output_dir = config.get('output_path', '')
 
-min_date = df_dailies['date'].min()
-max_date = df_dailies['date'].max()
+    # Define file paths for CSV files
+    library_csv_path = os.path.join(output_dir, 'library.csv')
+    aggregates_csv_path = os.path.join(output_dir, 'aggregates.csv')
+    dailies_csv_path = os.path.join(output_dir, 'dailies.csv')
 
-all_dates = pd.date_range(start=min_date, end=max_date, freq='D')
+    try:
+        # Save DataFrames to CSV files
+        df_library.to_csv(library_csv_path, index=False)
+        df_aggregates.to_csv(aggregates_csv_path, index=False)
+        df_dailies.to_csv(dailies_csv_path, index=False)
+    except Exception as e:
+        logging.error(f"Error saving DataFrames to CSV files: {e}")
 
-df_dates = pd.DataFrame({'date': all_dates})
+def main():
+    # Load configuration
+    with open(CONFIG_FILE, 'r') as config_file:
+        config = json.load(config_file)
 
-df_dailies = pd.merge(df_dates, df_dailies, on='date', how='left')
-numeric_cols = df_dailies.select_dtypes(include=['int64', 'float64']).columns
-df_dailies[numeric_cols] = df_dailies[numeric_cols].fillna(0)
+    LOG_FILE_PATH = config.get('log_file_path')
 
-# AGGREGATES
-# Create a dataframe that aggregates book and page totals and averages by year completed
+    OUTPUT_PATH = config.get('output_path', '')
 
-df_completed = df_library[(df_library['status'] == "Completed") & (df_library['year_completed'] != "nan")].sort_values(by='year_completed')
+    #Configure logging
+    logging.basicConfig(
+        filename=LOG_FILE_PATH,
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
 
-df_aggregates = df_completed.groupby('year_completed').agg(
-    count=('year_completed', 'count'),
-    sum_length=('length', 'sum'),
-    avg_length=('length', 'mean'),
-    avg_duration=('duration', 'mean'),
-    length_per_month=('length', lambda x: x.sum() / 12),
-    length_per_week=('length', lambda x: x.sum() / 52),
-    length_per_day=('length', lambda x: x.sum() / 365)
-).reset_index()
+    # Load missing data
+    missing_data = load_missing_data(MISSING_DATA_FILE)
 
-df_aggregates[['avg_length', 'avg_duration', 'length_per_month', 'length_per_week', 'length_per_day']] = df_aggregates[['avg_length', 'avg_duration', 'length_per_month', 'length_per_week', 'length_per_day']].apply(lambda x: x.round(2))
+    # Extract data file paths
+    data_paths = config.get('input_paths', {})
 
-# Check the above aggregates are correct
-# pd.options.display.max_rows = len(df_completed)
-# print(df_completed.loc[:, ['title', 'length', 'year_completed']])
+    # Create an empty list to store DataFrames
+    dfs = []
 
-# Create a dataframe that includes only books I completed in 2022.
-df_2022 = df_library[(df_library['status'] == "Completed") & (df_library['year_completed'] == "2022")].sort_values(by='completed', ascending=False).reset_index(drop=True)
+    # Iterate through the data_paths dictionary to create DataFrames
+    for library, file_path in data_paths.items():
+        if library != "daily":  # Exclude the "daily" library
+            # Read the CSV file and add the 'library' column
+            df = pd.read_csv(file_path)
+            df['library'] = library
+            dfs.append(df)
 
-# Write df_library to disk
-df_library.to_csv('/Users/kserickson/Documents/zsr/data/library.csv', index=False)
-df_aggregates.to_csv('/Users/kserickson/Documents/zsr/data/aggregates.csv', index=False)
-df_2022.to_csv('/Users/kserickson/Documents/zsr/data/2022.csv')
-df_dailies.to_csv('/Users/kserickson/Documents/zsr/data/dailies.csv')
+    # Concatenate individual library DataFrames into a single DataFrame
+    df_library = pd.concat(dfs, ignore_index=True)
+
+    # Create a DataFrame for the daily library
+    df_daily = pd.read_csv(data_paths.get('daily', ''))
+
+    # Clean and transform data
+    clean_data(df_library, missing_data)
+
+    # Add derived columns
+    df_dailies = add_derived_columns(df_library, df_daily)
+
+    # Add aggregate columns
+    df_aggregates = add_aggregate_columns(df_library)
+
+    # Save DataFrames to CSV files
+    save_dataframes(df_library, df_aggregates, df_dailies, config)
+
+if __name__ == "__main__":
+    main()
