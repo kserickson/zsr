@@ -1,0 +1,11 @@
+{
+    "input_paths": {
+        "zsreglau": "/Users/kserickson/Documents/zsr/data/library_zsreglau.csv",
+        "kindle": "/Users/kserickson/Documents/zsr/data/library_kindle.csv",
+        "borrowed": "/Users/kserickson/Documents/zsr/data/library_borrowed.csv",
+        "emeritus": "/Users/kserickson/Documents/zsr/data/library_emeritus.csv",
+        "daily": "/Users/kserickson/Documents/zsr/data/daily_log.csv"
+    },
+    "output_path": "/Users/kserickson/Documents/zsr/data",
+    "log_file_path": "/Users/kserickson/Documents/zsr/log/logfile.log"
+}
