@@ -5,11 +5,26 @@ import json
 import os
 import logging
 
-# CONSTANTS
+# CONFIGURATION
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-DATA_FOLDER = os.path.join(ROOT_DIR, 'data')
-MISSING_DATA_FILE = os.path.join(DATA_FOLDER, 'missing_data.json')
 CONFIG_FILE = os.path.join(ROOT_DIR, 'config.json')
+
+# Load configuration
+with open(CONFIG_FILE, 'r') as config_file:
+    config = json.load(config_file)
+
+# Extract paths from the configuration
+DATA_DIR = os.path.join(ROOT_DIR, 'data')
+MISSING_DATA_FILE = os.path.join(DATA_DIR, 'missing_data.json')
+LOG_FILE_PATH = config.get('log_file_path')
+OUTPUT_PATH = config.get('output_paths', '')
+
+#Configure logging
+logging.basicConfig(
+    filename=LOG_FILE_PATH,
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 # FUNCTIONS
 def load_missing_data(filename=MISSING_DATA_FILE):
@@ -169,12 +184,12 @@ def add_aggregate_columns(df_library):
 
 def save_dataframes(df_library, df_aggregates, df_dailies, config):
     # Access 'output_dir' from the global configuration
-    output_dir = config.get('output_path', '')
+    data_output_path = OUTPUT_PATH.get('data', '')
 
     # Define file paths for CSV files
-    library_csv_path = os.path.join(output_dir, 'library.csv')
-    aggregates_csv_path = os.path.join(output_dir, 'aggregates.csv')
-    dailies_csv_path = os.path.join(output_dir, 'dailies.csv')
+    library_csv_path = os.path.join(data_output_path, 'library.csv')
+    aggregates_csv_path = os.path.join(data_output_path, 'aggregates.csv')
+    dailies_csv_path = os.path.join(data_output_path, 'dailies.csv')
 
     try:
         # Save DataFrames to CSV files
@@ -185,21 +200,6 @@ def save_dataframes(df_library, df_aggregates, df_dailies, config):
         logging.error(f"Error saving DataFrames to CSV files: {e}")
 
 def main():
-    # Load configuration
-    with open(CONFIG_FILE, 'r') as config_file:
-        config = json.load(config_file)
-
-    LOG_FILE_PATH = config.get('log_file_path')
-
-    OUTPUT_PATH = config.get('output_path', '')
-
-    #Configure logging
-    logging.basicConfig(
-        filename=LOG_FILE_PATH,
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-
     # Load missing data
     missing_data = load_missing_data(MISSING_DATA_FILE)
 
@@ -211,7 +211,7 @@ def main():
 
     # Iterate through the data_paths dictionary to create DataFrames
     for library, file_path in data_paths.items():
-        if library != "daily":  # Exclude the "daily" library
+        if library not in ["daily", "dailies", "library"]:
             # Read the CSV file and add the 'library' column
             df = pd.read_csv(file_path)
             df['library'] = library

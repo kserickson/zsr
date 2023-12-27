@@ -1,0 +1,18 @@
+{
+    "titlefont": {
+        "family": "Arial",
+        "color": "black",
+        "weight": "bold",
+        "size": 10
+    },
+    "axesfont": {
+        "family": "Arial",
+        "color": "black",
+        "size": 9
+    },
+    "labelfonts": {
+        "family": "Arial",
+        "color": "black",
+        "size": 8
+    }
+}
