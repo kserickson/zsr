@@ -4,8 +4,13 @@
         "kindle": "/Users/kserickson/Documents/zsr/data/library_kindle.csv",
         "borrowed": "/Users/kserickson/Documents/zsr/data/library_borrowed.csv",
         "emeritus": "/Users/kserickson/Documents/zsr/data/library_emeritus.csv",
-        "daily": "/Users/kserickson/Documents/zsr/data/daily_log.csv"
+        "daily": "/Users/kserickson/Documents/zsr/data/daily_log.csv",
+        "dailies": "/Users/kserickson/Documents/zsr/data/dailies.csv",
+        "library": "/Users/kserickson/Documents/zsr/data/library.csv"
     },
-    "output_path": "/Users/kserickson/Documents/zsr/data",
+    "output_paths": {
+        "data": "/Users/kserickson/Documents/zsr/data",
+        "figures": "/Users/kserickson/Documents/zsr/figures"
+    },
     "log_file_path": "/Users/kserickson/Documents/zsr/log/logfile.log"
 }
