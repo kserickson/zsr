@@ -60,16 +60,21 @@ def clean_data(df_library, missing_data):
         'upc_isbn10'
     ], inplace=True)
 
-    # Strip whitespace from the 'status' column
+    # Strip whitespace
     df_library['status'] = df_library['status'].str.strip()
+    df_library['began'] = df_library['began'].str.strip()
+    df_library['completed'] = df_library['completed'].str.strip()
 
     # Cast columns as correct data types while filling in any missing values
     df_library['length'] = df_library['length'].fillna(0).astype(int)
     df_library['publish_date'] = pd.to_datetime(df_library['publish_date'], format='%Y-%m-%d', errors="coerce")
-    df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='coerce')
-    df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='coerce')
+    df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='raise')
+    df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='raise')
     df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
     df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
+
+    print(df_library.dtypes)
+    print(df_library[['title', 'status', 'began', 'completed']])
 
     # Fill in missing data using the missing_data dictionary
     if missing_data is not None:
@@ -167,7 +172,10 @@ def add_derived_columns(df_library, df_daily):
 
 def add_aggregate_columns(df_library):
     # Create a dataframe that aggregates book and page totals and averages by year completed
+    df_completed = df_library[(df_library['status'] == "Completed")]
+
     df_completed = df_library[(df_library['status'] == "Completed") & (df_library['year_completed'] != "nan")].sort_values(by='year_completed')
+    
     df_aggregates = df_completed.groupby('year_completed').agg(
         count=('year_completed', 'count'),
         sum_length=('length', 'sum'),
@@ -219,6 +227,8 @@ def main():
 
     # Concatenate individual library DataFrames into a single DataFrame
     df_library = pd.concat(dfs, ignore_index=True)
+    print(df_library[['title', 'publish_date', 'added', 'status', 'began', 'completed']])
+
 
     # Create a DataFrame for the daily library
     df_daily = pd.read_csv(data_paths.get('daily', ''))
@@ -228,9 +238,11 @@ def main():
 
     # Add derived columns
     df_dailies = add_derived_columns(df_library, df_daily)
+    # print(df_library)
 
     # Add aggregate columns
     df_aggregates = add_aggregate_columns(df_library)
+    # print(df_aggregates)
 
     # Save DataFrames to CSV files
     save_dataframes(df_library, df_aggregates, df_dailies, config)

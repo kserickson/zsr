@@ -1,16 +1,16 @@
 {
     "input_paths": {
-        "zsreglau": "/Users/kserickson/Documents/zsr/data/library_zsreglau.csv",
-        "kindle": "/Users/kserickson/Documents/zsr/data/library_kindle.csv",
-        "borrowed": "/Users/kserickson/Documents/zsr/data/library_borrowed.csv",
-        "emeritus": "/Users/kserickson/Documents/zsr/data/library_emeritus.csv",
-        "daily": "/Users/kserickson/Documents/zsr/data/daily_log.csv",
-        "dailies": "/Users/kserickson/Documents/zsr/data/dailies.csv",
-        "library": "/Users/kserickson/Documents/zsr/data/library.csv"
+        "zsreglau": "/Users/kerickson/Documents/zsr/data/library_zsreglau.csv",
+        "kindle": "/Users/kerickson/Documents/zsr/data/library_kindle.csv",
+        "borrowed": "/Users/kerickson/Documents/zsr/data/library_borrowed.csv",
+        "emeritus": "/Users/kerickson/Documents/zsr/data/library_emeritus.csv",
+        "daily": "/Users/kerickson/Documents/zsr/data/daily_log.csv",
+        "dailies": "/Users/kerickson/Documents/zsr/data/dailies.csv",
+        "library": "/Users/kerickson/Documents/zsr/data/library.csv"
     },
     "output_paths": {
-        "data": "/Users/kserickson/Documents/zsr/data",
-        "figures": "/Users/kserickson/Documents/zsr/figures"
+        "data": "/Users/kerickson/Documents/zsr/data",
+        "figures": "/Users/kerickson/Documents/zsr/figures"
     },
-    "log_file_path": "/Users/kserickson/Documents/zsr/log/logfile.log"
+    "log_file_path": "/Users/kerickson/Documents/zsr/log/logfile.log"
 }

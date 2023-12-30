@@ -141,7 +141,7 @@ def plot_reading_heatmap(df, year):
     month_weeks = ((month_starts - first_monday).days // 7 + 1).tolist()
     
     # Pivot the DataFrame to prepare for the heatmap
-    heatmap_data = calendar_df.pivot("day", "week", "daily_pages")
+    heatmap_data = calendar_df.pivot(index="day", columns="week", values="daily_pages")
     
     # Create the heatmap plot
     fig, ax = plt.subplots(figsize=(20, 2.5))  # Aspect ratio adjusted for visual clarity
@@ -178,6 +178,7 @@ def plot_books_table(df, df_dailies, year):
     df['completed'] = pd.to_datetime(df['completed'])
     df = df[(df['began'].dt.year == year) | (df['completed'].dt.year == year)]
     df.sort_values(by='began', ascending=False, inplace=True)
+    print(df)
 
     # Aggregate the most recent percent_complete for each title in df_dailies
     df_dailies = df_dailies.groupby('title')['percent_complete'].last().reset_index()
