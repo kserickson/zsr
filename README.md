@@ -44,4 +44,4 @@ If you'd like to use ZSR yourself, follow these steps to set it up.
 
 ## Why ZSR?
 
-This project is named for the [Z. Smith Reynolds Library](https://zsr.wfu.edu/) at Wake Forest University, where I first fell in love with libraries.
+This project is named for the [Z. Smith Reynolds Library](https://zsr.wfu.edu/) at Wake Forest University, where I spent many happy hours napping, and a few reading.
