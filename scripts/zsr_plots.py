@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import matplotlib.patches as patches
@@ -21,16 +22,45 @@ with open(CONFIG_FILE, 'r') as config_file:
 with open('style.json', 'r') as style_file:
     style_data = json.load(style_file)
 
+font = style_data.get('font', {})
 titlefont = style_data.get('titlefont', {})
 axesfont = style_data.get('axesfont', {})
 labelfonts = style_data.get('labelfonts', {})
+facecolors = style_data.get('facecolors', {})
+
+# Setting global font family
+mpl.rcParams['font.family'] = font['family']
+
+# Setting global title font properties
+mpl.rcParams['axes.titlesize'] = titlefont['size']
+mpl.rcParams['axes.titleweight'] = titlefont['weight']
+mpl.rcParams['axes.titlecolor'] = titlefont['color']
+
+# Setting global axis label font properties
+mpl.rcParams['axes.labelsize'] = axesfont['size']
+mpl.rcParams['axes.labelcolor'] = axesfont['color']
+
+# Setting global tick label font properties
+mpl.rcParams['xtick.labelsize'] = labelfonts['size']
+mpl.rcParams['ytick.labelsize'] = labelfonts['size']
+mpl.rcParams['xtick.color'] = labelfonts['color']
+mpl.rcParams['ytick.color'] = labelfonts['color']
+
+# Setting facecolors globally
+mpl.rcParams['figure.facecolor'] = facecolors["figure_facecolor"]
+mpl.rcParams['axes.facecolor'] = facecolors["axes_facecolor"]
 
 # FUNCTIONS
-def clean_data(df):
-    df['ean_isbn13'] = df['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
-    df['date'] = pd.to_datetime(df['date'], format='%Y-%m-%d', errors="coerce")
-    df['title'] = df['title'].replace(np.nan, '')
-    return df
+def clean_data(df_library, df_dailies):
+    df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
+    df_dailies['ean_isbn13'] = df_dailies['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
+    df_library['title'] = df_library['title'].replace(np.nan, '')
+    df_dailies['title'] = df_dailies['title'].replace(np.nan, '')
+    df_library['began'] = pd.to_datetime(df_library['began'], format='%Y-%m-%d', errors='raise')
+    df_library['completed'] = pd.to_datetime(df_library['completed'], format='%Y-%m-%d', errors='raise')
+    df_dailies['date'] = pd.to_datetime(df_dailies['date'], format='%Y-%m-%d', errors="coerce")
+    return df_library
+    return df_dailies
 
 def plot_stacked_bar_and_line_charts(df):
     # Group data by year
@@ -42,7 +72,7 @@ def plot_stacked_bar_and_line_charts(df):
         year_data = df[df['year'] == year]
 
         # Create a figure and subplots
-        fig, ax1 = plt.subplots(figsize=(20, 6))
+        fig, ax1 = plt.subplots(figsize=(20, 2.5))
         ax2 = ax1.twinx()
 
         # Create an array of unique titles for this year's data
@@ -70,7 +100,7 @@ def plot_stacked_bar_and_line_charts(df):
 
         # Label and style the axes
         # x-axis
-        ax1.set_xlabel('')
+        ax1.set_xlabel('', fontdict=axesfont)
         start_date = year_data['date'].min() - pd.Timedelta(days=1)
         end_date = year_data['date'].max() + pd.Timedelta(days=1)
         ax1.set_xlim(start_date, end_date)
@@ -80,24 +110,27 @@ def plot_stacked_bar_and_line_charts(df):
         all_day_positions = mdates.date2num(all_days)
 
         # Calculate positions for each month's first day
-        month_starts = pd.date_range(start_date, end_date, freq='MS')
+        month_starts = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31', freq='MS')
         month_start_positions = mdates.date2num(month_starts)
 
         # Set the tick positions and labels for the x-axis
-        ax1.set_xticks(all_day_positions)
-        ax1.set_xticklabels(['' if date.day != 1 else date.strftime('%b') for date in all_days], rotation=0, ha='left', fontdict=labelfonts)
+        ax1.set_xticks(month_start_positions)
+        ax1.set_xticklabels([date.strftime('%b') for date in month_starts], rotation=0, ha='left')
+
+        # Apply font styles to tick labels
+        for label in ax1.get_xticklabels() + ax1.get_yticklabels():
+          label.set_fontsize(labelfonts['size'])
+          label.set_color(labelfonts['color'])
 
         # y-axes
         ax1.set_ylabel('Percent Complete')
         ax2.set_ylabel('Daily Pages')
 
         # Add a legend
-        # ax1.legend(fontsize=6, bbox_to_anchor=(0, -0.35, 1, 1), borderaxespad=0, ncol=3, frameon=False)
+        # ax1.legend(fontsize=7, loc='lower left', bbox_to_anchor=(0, -.9), borderaxespad=0, ncol=3, frameon=False)
 
         # Add a title
-        plt.title(f'{year} YEAR IN READING', loc='left')
-
-        fig.set_facecolor('lightgray')  # Set the background color of the plot
+        plt.title(f'{year} YEAR IN READING - Daily Pages and Completion Progress Over Time', loc='left')
 
         # Return the figure
         return fig
@@ -168,22 +201,24 @@ def plot_reading_heatmap(df, year):
     
     # Adjust the layout to add padding and display the plot clearly
     plt.tight_layout(pad=2)
-    
+
+    # Add a title
+    plt.title(f'{year} YEAR IN READING - Daily Pages', loc='left')
+
     return fig
 
 def plot_books_table(df, df_dailies, year):
 
-    # Filter and sort data
-    df['began'] = pd.to_datetime(df['began'])
-    df['completed'] = pd.to_datetime(df['completed'])
-    df = df[(df['began'].dt.year == year) | (df['completed'].dt.year == year)]
+    # Filter df to only titles that were read at least one day this year, sort df
+    books_read_in_2023 = df_dailies[df_dailies['date'].dt.year == 2023]['title'].unique()
+    df = df[df['title'].isin(books_read_in_2023) & df['status'].isin(['Completed', 'In progress'])]
     df.sort_values(by='began', ascending=False, inplace=True)
 
     # Aggregate the most recent percent_complete for each title in df_dailies
-    df_dailies = df_dailies.groupby('title')['percent_complete'].last().reset_index()
+    df_dailies = df_dailies.groupby('ean_isbn13')['percent_complete'].last().reset_index()
 
     # Merge df_dailies with df, convert values to integers
-    df = df.merge(df_dailies, on='title', how='left')
+    df = df.merge(df_dailies, on='ean_isbn13', how='left')
     df['percent_complete'] = df['percent_complete'].fillna(0).apply(lambda x: int(x))
 
     # Truncate long titles and authors
@@ -204,20 +239,13 @@ def plot_books_table(df, df_dailies, year):
     ax.set_xlim(0, ncols + 1)
     ax.set_ylim(0, nrows + 1)
 
-    positions = [0.25, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5]
+    positions = [0, 2.25, 3.25, 4.25, 5.25, 6.25, 7.25]
     columns = ['title', 'creators', 'length', 'began', 'completed', 'percent_complete', 'duration']
-    title_colors = sns.color_palette('gist_stern_r', n_colors=nrows)[::-1]
 
     for i in range (nrows):
         for j, column in enumerate(columns):
             text_ha = 'left' if j == 0 else 'center'
             text_label = f'{df[column].iloc[i]}'
-
-            if column == 'title':
-                # Set the color for the title text
-                text_color = title_colors[i]
-            else:
-                text_color = 'black'  # Default text color for other columns
 
             if column == 'percent_complete':
                 # Draw a bar chart in the cell
@@ -239,7 +267,6 @@ def plot_books_table(df, df_dailies, year):
                 ha=text_ha,
                 va='center',
                 fontsize=10,
-                color=text_color
             )
 
     column_names = ['Title', 'Authors', 'Pages', 'Began', 'Completed', '% Complete', 'Time to Complete (Days)']
@@ -263,8 +290,15 @@ def plot_books_table(df, df_dailies, year):
     for x in range(1, nrows):
         ax.plot([ax.get_xlim()[0], ax.get_xlim()[1]], [x, x], lw=1.15, color='gray', ls=':', zorder=3 , marker='')
 
+    # Remove axis border and ticks
     ax.set_axis_off()
-    fig.set_facecolor('lightgray')  # Set the background color of the plot
+
+    # Set x and y labels to empty (if needed)
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+
+    # Add a title
+    plt.title(f'{year} YEAR IN READING - Books Read ≥ 1 Day', loc='left')
 
     return fig
 
@@ -275,7 +309,6 @@ def save_plot(
     dpi=300,
     transparent=True,
     bbox_inches='tight',
-    facecolor='white'
 ):
     """
     Save a matplotlib figure to a file.
@@ -287,8 +320,10 @@ def save_plot(
         dpi (int): The DPI (dots per inch) for the saved image.
         transparent (bool): Whether the saved image should have a transparent background.
         bbox_inches (str or Bbox): Bounding box in inches: 'tight' or Bbox object.
-        facecolor (str): Background color of the saved image.
     """
+
+    # Get global facecolors
+    global_figure_facecolor = mpl.rcParams['figure.facecolor']
 
     # Save the figure to the specified file
     figure.savefig(
@@ -296,7 +331,7 @@ def save_plot(
         dpi=dpi,
         transparent=transparent,
         bbox_inches=bbox_inches,
-        facecolor=facecolor
+        facecolor=global_figure_facecolor
     )
 
 def main():
@@ -308,7 +343,7 @@ def main():
     df_library = pd.read_csv(data_paths.get('library', ''))
 
     # Clean and transform data
-    clean_data(df_dailies)
+    clean_data(df_library, df_dailies)
 
     #Create and save plots
     fig1 = plot_stacked_bar_and_line_charts(df_dailies)

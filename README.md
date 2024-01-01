@@ -42,6 +42,10 @@ If you'd like to use ZSR yourself, follow these steps to set it up.
 
 5. Run `zsr.py` to clean and enrich your data. Then run `zsr_plots.py` to visualize your data.
 
+## Credits
+
+The table plot owes a lot to (this tutorial)[https://www.sonofacorner.com/beautiful-tables/] from (sonofacorner)[https://github.com/sonofacorner].
+
 ## Why ZSR?
 
 This project is named for the [Z. Smith Reynolds Library](https://zsr.wfu.edu/) at Wake Forest University, where I spent many happy hours napping, and a few reading.
