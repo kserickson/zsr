@@ -44,7 +44,7 @@ If you'd like to use ZSR yourself, follow these steps to set it up.
 
 ## Credits
 
-The table plot owes a lot to (this tutorial)[https://www.sonofacorner.com/beautiful-tables/] from (sonofacorner)[https://github.com/sonofacorner].
+The table plot owes a lot to [this tutorial](https://www.sonofacorner.com/beautiful-tables/) from [sonofacorner](https://github.com/sonofacorner), whose plots are stunning.
 
 ## Why ZSR?
 
