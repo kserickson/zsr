@@ -1,18 +1,22 @@
 {
+    "font" : {
+        "family": "Arial"
+    },
     "titlefont": {
-        "family": "Arial",
         "color": "black",
         "weight": "bold",
-        "size": 10
+        "size": 11
     },
     "axesfont": {
-        "family": "Arial",
         "color": "black",
         "size": 9
     },
     "labelfonts": {
-        "family": "Arial",
         "color": "black",
         "size": 8
+    },
+    "facecolors": {
+        "figure_facecolor": "gainsboro",
+        "axes_facecolor": "lightblue"
     }
 }
