@@ -178,7 +178,6 @@ def plot_books_table(df, df_dailies, year):
     df['completed'] = pd.to_datetime(df['completed'])
     df = df[(df['began'].dt.year == year) | (df['completed'].dt.year == year)]
     df.sort_values(by='began', ascending=False, inplace=True)
-    print(df)
 
     # Aggregate the most recent percent_complete for each title in df_dailies
     df_dailies = df_dailies.groupby('title')['percent_complete'].last().reset_index()

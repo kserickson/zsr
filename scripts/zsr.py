@@ -73,9 +73,6 @@ def clean_data(df_library, missing_data):
     df_library['added'] = pd.to_datetime(df_library['added'], format='%Y-%m-%d', errors='coerce')
     df_library['ean_isbn13'] = df_library['ean_isbn13'].astype(str).str.replace(r'\.0$', '', regex=True)
 
-    print(df_library.dtypes)
-    print(df_library[['title', 'status', 'began', 'completed']])
-
     # Fill in missing data using the missing_data dictionary
     if missing_data is not None:
         # Fill in missing lengths
@@ -227,8 +224,6 @@ def main():
 
     # Concatenate individual library DataFrames into a single DataFrame
     df_library = pd.concat(dfs, ignore_index=True)
-    print(df_library[['title', 'publish_date', 'added', 'status', 'began', 'completed']])
-
 
     # Create a DataFrame for the daily library
     df_daily = pd.read_csv(data_paths.get('daily', ''))
@@ -238,11 +233,9 @@ def main():
 
     # Add derived columns
     df_dailies = add_derived_columns(df_library, df_daily)
-    # print(df_library)
 
     # Add aggregate columns
     df_aggregates = add_aggregate_columns(df_library)
-    # print(df_aggregates)
 
     # Save DataFrames to CSV files
     save_dataframes(df_library, df_aggregates, df_dailies, config)
