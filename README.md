@@ -8,6 +8,9 @@ ZSR currently supports three visualizations:
 2. A **Github contribution-style grid** of pages read daily in a given year.
 3. An **overlaid line and stacked bar chart** that shows, by book, number of pages read each day and progress toward completion over time
 
+![](/figures/daily-pages.png)
+![](/figures/overlay-chart.png)
+
 ## Requirements
 
 ZSR scripts are compatible with `python 3.9.6` and make use of the following python libraries and modules:
