@@ -62,90 +62,78 @@ def clean_data(df_library, df_dailies):
     return df_library
     return df_dailies
 
-def plot_stacked_bar_and_line_charts(df):
-    # Group data by year
-    df['year'] = df['date'].dt.year
-    years = df['year'].unique()
+def plot_stacked_bar_and_line_charts(df, year):
+    # Filter data for the specified year
+    df = df[df['date'].dt.year == year]
 
-    for year in years:
-        # Filter data for the current year
-        year_data = df[df['year'] == year]
+    # Create a figure and subplots
+    fig, ax1 = plt.subplots(figsize=(20, 2.5))
+    ax2 = ax1.twinx()
 
-        # Create a figure and subplots
-        fig, ax1 = plt.subplots(figsize=(20, 2.5))
-        ax2 = ax1.twinx()
+    # Create an array of unique titles for this year's data
+    titles = df['title'].unique()
+    titles = titles[titles != '']
 
-        # Create an array of unique titles for this year's data
-        titles = year_data['title'].unique()
-        titles = titles[titles != '']
+    # Create a DataFrame for stacked bar chart
+    grouped = df.groupby(['date', 'title'])['daily_pages'].sum().unstack(fill_value=0)
 
-        # Create a DataFrame for stacked bar chart
-        grouped = year_data.groupby(['date', 'title'])['daily_pages'].sum().unstack(fill_value=0)
+    # Colors for lines
+    colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
 
-        # Colors for lines
-        colors = sns.color_palette('gist_stern_r', n_colors=len(titles))
+    # Initialize vertical offset for stacked bar chart
+    y_offset = np.zeros(len(grouped))
 
-        # Initialize vertical offset for stacked bar chart
-        y_offset = np.zeros(len(grouped))
+    # Plot stacked bars
+    for idx, title in enumerate(titles):
+        ax2.bar(grouped.index, grouped[title], bottom=y_offset, color=colors[idx], alpha=0.7)
+        y_offset = y_offset + grouped[title]
 
-        # Plot stacked bars
-        for idx, title in enumerate(titles):
-            ax2.bar(grouped.index, grouped[title], bottom=y_offset, color=colors[idx], alpha=0.7)
-            y_offset = y_offset + grouped[title]
+    # Plot lines for percent complete
+    for i, title in enumerate(titles):
+        data = df[df['title'] == title]
+        ax1.plot(data['date'], data['percent_complete'], label=title, color=colors[i])
 
-        # Plot lines for percent complete
-        for i, title in enumerate(titles):
-            data = year_data[year_data['title'] == title]
-            ax1.plot(data['date'], data['percent_complete'], label=title, color=colors[i])
+    # Label and style the axes
+    # x-axis
+    ax1.set_xlabel('', fontdict=axesfont)
+    start_date = df['date'].min() - pd.Timedelta(days=1)
+    end_date = df['date'].max() + pd.Timedelta(days=1)
+    ax1.set_xlim(start_date, end_date)
 
-        # Label and style the axes
-        # x-axis
-        ax1.set_xlabel('', fontdict=axesfont)
-        start_date = year_data['date'].min() - pd.Timedelta(days=1)
-        end_date = year_data['date'].max() + pd.Timedelta(days=1)
-        ax1.set_xlim(start_date, end_date)
+    # Calculate positions for every day of the year
+    all_days = pd.date_range(start_date, end_date)
+    all_day_positions = mdates.date2num(all_days)
 
-        # Calculate positions for every day of the year
-        all_days = pd.date_range(start_date, end_date)
-        all_day_positions = mdates.date2num(all_days)
+    # Calculate positions for each month's first day
+    month_starts = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31', freq='MS')
+    month_start_positions = mdates.date2num(month_starts)
 
-        # Calculate positions for each month's first day
-        month_starts = pd.date_range(start=f'{year}-01-01', end=f'{year}-12-31', freq='MS')
-        month_start_positions = mdates.date2num(month_starts)
+    # Set the tick positions and labels for the x-axis
+    ax1.set_xticks(month_start_positions)
+    ax1.set_xticklabels([date.strftime('%b') for date in month_starts], rotation=0, ha='left')
 
-        # Set the tick positions and labels for the x-axis
-        ax1.set_xticks(month_start_positions)
-        ax1.set_xticklabels([date.strftime('%b') for date in month_starts], rotation=0, ha='left')
+    # Apply font styles to tick labels
+    for label in ax1.get_xticklabels() + ax1.get_yticklabels():
+      label.set_fontsize(labelfonts['size'])
+      label.set_color(labelfonts['color'])
 
-        # Apply font styles to tick labels
-        for label in ax1.get_xticklabels() + ax1.get_yticklabels():
-          label.set_fontsize(labelfonts['size'])
-          label.set_color(labelfonts['color'])
+    # y-axes
+    ax1.set_ylabel('Percent Complete')
+    ax2.set_ylabel('Daily Pages')
 
-        # y-axes
-        ax1.set_ylabel('Percent Complete')
-        ax2.set_ylabel('Daily Pages')
+    # Add a legend
+    # ax1.legend(fontsize=7, loc='lower left', bbox_to_anchor=(0, -.9), borderaxespad=0, ncol=3, frameon=False)
 
-        # Add a legend
-        # ax1.legend(fontsize=7, loc='lower left', bbox_to_anchor=(0, -.9), borderaxespad=0, ncol=3, frameon=False)
+    # Add a title
+    plt.title(f'{year} YEAR IN READING - Daily Pages and Completion Progress Over Time', loc='left')
 
-        # Add a title
-        plt.title(f'{year} YEAR IN READING - Daily Pages and Completion Progress Over Time', loc='left')
-
-        # Return the figure
-        return fig
-
-def adjust_week(df, start_date):
-    # Calculate the 'day' column
-    df['day'] = df['date'].dt.weekday
-    # Calculate the 'week' column, starting with the first Monday
-    first_monday = df.loc[df['day'] == 0, 'date'].iloc[0]
-    if first_monday > start_date:
-        first_monday -= pd.Timedelta(days=7)
-    df['week'] = ((df['date'] - first_monday).dt.days // 7) + 1
-    return df
+    # Return the figure
+    return fig
 
 def plot_reading_heatmap(df, year):
+    # Filter data for the specified year
+    df = df[df['date'].dt.year == year]
+
     # Ensure the data is aggregated by date, summing over the 'daily_pages' column
     daily_data = df.groupby('date')['daily_pages'].sum().reset_index()
     
@@ -210,8 +198,8 @@ def plot_reading_heatmap(df, year):
 def plot_books_table(df, df_dailies, year):
 
     # Filter df to only titles that were read at least one day this year, sort df
-    books_read_in_2023 = df_dailies[df_dailies['date'].dt.year == 2023]['title'].unique()
-    df = df[df['title'].isin(books_read_in_2023) & df['status'].isin(['Completed', 'In progress'])]
+    books_read_in_year = df_dailies[df_dailies['date'].dt.year == year]['title'].unique()
+    df = df[df['title'].isin(books_read_in_year) & df['status'].isin(['Completed', 'In progress'])]
     df.sort_values(by='began', ascending=False, inplace=True)
 
     # Aggregate the most recent percent_complete for each title in df_dailies
@@ -345,13 +333,19 @@ def main():
     # Clean and transform data
     clean_data(df_library, df_dailies)
 
-    #Create and save plots
-    fig1 = plot_stacked_bar_and_line_charts(df_dailies)
-    fig2 = plot_reading_heatmap(df_dailies, 2023)
-    fig3 = plot_books_table(df_library, df_dailies, 2023)
-    save_plot(fig1, 'overlay-chart.png')
-    save_plot(fig2, 'daily-pages.png')
-    save_plot(fig3, 'books-table.png')
+    # Find years in dataset
+    years = df_dailies['date'].dt.year.unique()
+
+    #Create and save plots for each year
+    for year in years:
+        fig1 = plot_stacked_bar_and_line_charts(df_dailies, year)
+        save_plot(fig1, f'overlay-chart-{year}.png')
+
+        fig2 = plot_reading_heatmap(df_dailies, year)
+        save_plot(fig2, f'daily-pages-{year}.png')
+
+        fig3 = plot_books_table(df_library, df_dailies, year)
+        save_plot(fig3, f'books-table-{year}.png')
 
 if __name__ == "__main__":
     main()
