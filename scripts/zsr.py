@@ -129,7 +129,7 @@ def clean_data(df_library, missing_data):
     return df_library
 
 def add_derived_columns(df_library, df_daily):
-    # Type converstions for df_daily before merging
+    # Type conversions for df_daily before merging
     df_daily['ean_isbn13'] = df_daily['ean_isbn13'].astype(str)
     df_daily['title'] = df_daily['title'].astype(str)
     df_daily['date'] = pd.to_datetime(df_daily['date'], format='%Y-%m-%d', errors='coerce')
