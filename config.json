@@ -4,6 +4,7 @@
         "kindle": "/Users/kerickson/Documents/zsr/data/library_kindle.csv",
         "borrowed": "/Users/kerickson/Documents/zsr/data/library_borrowed.csv",
         "emeritus": "/Users/kerickson/Documents/zsr/data/library_emeritus.csv",
+        "audiobooks": "/Users/kerickson/Documents/zsr/data/library_audiobooks.csv",
         "daily": "/Users/kerickson/Documents/zsr/data/daily_log.csv",
         "dailies": "/Users/kerickson/Documents/zsr/data/dailies.csv",
         "library": "/Users/kerickson/Documents/zsr/data/library.csv"
