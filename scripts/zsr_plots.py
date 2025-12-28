@@ -171,7 +171,7 @@ def plot_reading_heatmap(df, year):
     cmap.set_under('white')  # Set color for zero values
     
     # Draw the heatmap with white cells for zeros and black lines for borders
-    formatted_annotation = heatmap_data.fillna(0).applymap(lambda x: f'{int(x):d}' if x != 0 else '')
+    formatted_annotation = heatmap_data.fillna(0).map(lambda x: f'{int(x):d}' if x != 0 else '')
     sns.heatmap(heatmap_data, cmap=cmap, linewidths=0.5, linecolor='black', cbar=True, annot=formatted_annotation, fmt="", annot_kws={'fontsize':8}, square=True, vmax=75, ax=ax)
     
     # Set the aspect of the plot to equal for square cells
@@ -201,7 +201,7 @@ def plot_books_table(df, df_dailies, year):
     # Filter df to only titles that were read at least one day this year, sort df
     books_read_in_year = df_dailies[df_dailies['date'].dt.year == year]['title'].unique()
     df = df[df['title'].isin(books_read_in_year) & df['status'].isin(['Completed', 'In progress'])]
-    df.sort_values(by='began', ascending=False, inplace=True)
+    df = df.sort_values(by='began', ascending=False)
 
     # Aggregate the most recent percent_complete for each title in df_dailies
     df_dailies = df_dailies.groupby('ean_isbn13')['percent_complete'].last().reset_index()
