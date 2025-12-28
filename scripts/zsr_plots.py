@@ -19,7 +19,8 @@ with open(CONFIG_FILE, 'r') as config_file:
     config = json.load(config_file)
 
 # Load styling information from style.json
-with open('style.json', 'r') as style_file:
+STYLE_FILE = os.path.join(os.path.dirname(__file__), 'style.json')
+with open(STYLE_FILE, 'r') as style_file:
     style_data = json.load(style_file)
 
 font = style_data.get('font', {})

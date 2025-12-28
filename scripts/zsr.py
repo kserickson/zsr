@@ -153,6 +153,15 @@ def add_derived_columns(df_library, df_daily):
     df_dailies['percent_complete'] = df_dailies['end_page'] / df_dailies['length'] * 100
     df_dailies['percent_complete'] = df_dailies['percent_complete'].round(2)
 
+    # Check for infinity values caused by books with 0 or missing page lengths
+    df_infinite_pct = df_dailies[np.isinf(df_dailies['percent_complete'])]
+    if not df_infinite_pct.empty:
+        logging.warning("Books with infinity percent_complete (caused by 0 or missing page length):")
+        logging.warning(df_infinite_pct[['title', 'ean_isbn13', 'length', 'percent_complete']].drop_duplicates(subset=['title']))
+        logging.warning("These books will be excluded from processing.")
+        # Remove rows with infinity percent_complete
+        df_dailies = df_dailies[~np.isinf(df_dailies['percent_complete'])]
+
     # Add daily_pages column
     df_dailies['daily_pages'] = df_dailies['end_page'] - df_dailies['start_page']
 
