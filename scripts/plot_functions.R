@@ -15,9 +15,10 @@
 #' @param df_dailies Dailies data frame
 #' @param year Year to plot
 #' @param config Configuration list
+#' @param show_title Whether to show the year title (default TRUE)
 #' @return ggplot object
 #' @export
-plot_reading_heatmap <- function(df_dailies, year, config) {
+plot_reading_heatmap <- function(df_dailies, year, config, show_title = TRUE) {
 
   # Filter to specified year
   df_year <- df_dailies %>%
@@ -114,8 +115,8 @@ plot_reading_heatmap <- function(df_dailies, year, config) {
 
     # Labels and titles
     labs(
-      title = format_year_title(year)$title,
-      subtitle = "Daily Pages Read",
+      title = if (show_title) format_year_title(year)$title else "Daily Pages Read",
+      subtitle = if (show_title) "Daily Pages Read" else NULL,
       x = NULL,
       y = NULL
     ) +
@@ -146,9 +147,17 @@ plot_reading_heatmap <- function(df_dailies, year, config) {
 #' @param df_dailies Dailies data frame
 #' @param year Year to plot
 #' @param config Configuration list
+#' @param show_legend Whether to show legend (default from config)
+#' @param color_mapping Optional named vector of colors for books
+#' @param show_title Whether to show the year title (default TRUE)
 #' @return ggplot object
 #' @export
-plot_overlay_chart <- function(df_dailies, year, config) {
+plot_overlay_chart <- function(df_dailies, year, config, show_legend = NULL, color_mapping = NULL, show_title = TRUE) {
+
+  # Use config default if not specified
+  if (is.null(show_legend)) {
+    show_legend <- config$overlay$show_legend
+  }
 
   # Filter to specified year and non-empty titles
   df_year <- df_dailies %>%
@@ -161,8 +170,23 @@ plot_overlay_chart <- function(df_dailies, year, config) {
   }
 
   # Get unique books and create color palette
+  # Abbreviate long titles for legend
+  df_year <- df_year %>%
+    dplyr::mutate(
+      title_display = ifelse(nchar(title) > 35,
+                             paste0(substr(title, 1, 32), "..."),
+                             title)
+    )
+
   n_books <- length(unique(df_year$title))
-  colors <- get_zsr_palette("categorical", "set2", n = n_books)
+
+  # Use provided color mapping or generate new one
+  if (!is.null(color_mapping)) {
+    colors <- color_mapping
+  } else {
+    colors <- get_zsr_palette("categorical", "set2", n = n_books)
+    names(colors) <- unique(df_year$title_display)
+  }
 
   # Calculate scaling factor for dual axes
   max_pages <- max(df_year$daily_pages, na.rm = TRUE)
@@ -171,13 +195,13 @@ plot_overlay_chart <- function(df_dailies, year, config) {
   # Create plot
   p <- ggplot(df_year, aes(x = date)) +
     # Stacked bars for daily pages
-    geom_col(aes(y = daily_pages, fill = title),
+    geom_col(aes(y = daily_pages, fill = title_display),
             alpha = config$overlay$alpha_bars,
             position = "stack") +
 
     # Lines for percent complete (scaled to match bar axis)
     geom_line(aes(y = percent_complete * scale_factor,
-                 color = title,
+                 color = title_display,
                  group = title),
              alpha = config$overlay$alpha_lines,
              linewidth = config$overlay$line_width) +
@@ -186,11 +210,12 @@ plot_overlay_chart <- function(df_dailies, year, config) {
     scale_fill_manual(values = colors, name = "Book") +
     scale_color_manual(values = colors, name = "Book") +
 
-    # Dual y-axes
+    # Dual y-axes - no gap at bottom
     scale_y_continuous(
       name = "Daily Pages",
       sec.axis = sec_axis(~ . / scale_factor,
-                         name = "Percent Complete (%)")
+                         name = "Percent Complete (%)"),
+      expand = expansion(mult = c(0, 0.05))  # No gap at 0, small gap at top
     ) +
 
     # X-axis with month breaks
@@ -202,29 +227,53 @@ plot_overlay_chart <- function(df_dailies, year, config) {
 
     # Labels
     labs(
-      title = format_year_title(year)$title,
-      subtitle = "Daily Reading Volume and Progress",
+      title = if (show_title) format_year_title(year)$title else "Daily Reading Volume and Progress",
+      subtitle = if (show_title) "Daily Reading Volume and Progress" else NULL,
       x = NULL
     ) +
 
-    # Legend configuration (ENABLED!)
-    guides(
-      fill = guide_legend(
-        title = "Book",
-        ncol = config$overlay$legend_cols,
-        override.aes = list(alpha = 1)
-      ),
-      color = guide_legend(
-        title = "Book",
-        ncol = config$overlay$legend_cols
+    # Legend configuration
+    {if (show_legend) {
+      guides(
+        fill = guide_legend(
+          title = if (isTRUE(config$overlay$legend_show_title)) "Book" else NULL,
+          ncol = if (config$overlay$legend_position == "right") 1 else config$overlay$legend_cols,
+          override.aes = list(alpha = 1)
+        ),
+        color = guide_legend(
+          title = if (isTRUE(config$overlay$legend_show_title)) "Book" else NULL,
+          ncol = if (config$overlay$legend_position == "right") 1 else config$overlay$legend_cols
+        )
       )
-    ) +
+    } else {
+      guides(fill = "none", color = "none")
+    }} +
 
     # Apply theme
     theme_zsr(base_size = config$fonts$axis_text_size) +
     theme(
-      legend.position = config$overlay$legend_position,
-      legend.box = "horizontal",
+      legend.position = if (config$overlay$legend_position == "inside") {
+        c(0.02, 0.98)  # top-left corner
+      } else {
+        config$overlay$legend_position
+      },
+      legend.box = "vertical",
+      legend.justification = if (config$overlay$legend_position == "inside") {
+        c(0, 1)  # left-top justification
+      } else if (config$overlay$legend_position == "bottom") {
+        c(0, 0.5)  # left-align for bottom
+      } else {
+        "center"
+      },
+      legend.background = if (config$overlay$legend_position == "inside") {
+        element_rect(fill = alpha("white", 0.9), color = "gray50", linewidth = 0.5)
+      } else {
+        element_blank()
+      },
+      legend.key.size = unit(0.35, "cm"),
+      legend.text = element_text(size = 7),
+      legend.title = element_text(size = 8, face = "bold"),
+      legend.spacing.y = unit(0.1, "cm"),
       plot.title = element_text(size = config$fonts$title_size),
       plot.subtitle = element_text(size = config$fonts$subtitle_size),
       axis.title.y.right = element_text(margin = margin(l = 10))
@@ -301,9 +350,11 @@ plot_overlay_faceted <- function(df_dailies, year, config) {
 #' @param df_dailies Dailies data frame
 #' @param year Year to plot
 #' @param config Configuration list
+#' @param color_mapping Optional named vector of colors for books (for year-in-review)
+#' @param show_title Whether to show the full year title (default TRUE)
 #' @return gt table object
 #' @export
-plot_books_table <- function(df_library, df_dailies, year, config) {
+plot_books_table <- function(df_library, df_dailies, year, config, color_mapping = NULL, show_title = TRUE) {
 
   # Filter to books read at least one day this year
   books_read_in_year <- df_dailies %>%
@@ -343,33 +394,86 @@ plot_books_table <- function(df_library, df_dailies, year, config) {
       completed_display = ifelse(is.na(completed), "-", format(completed, "%Y-%b-%d")),
 
       # Format duration
-      duration_display = ifelse(is.na(duration) | duration == 0, "-", as.character(duration))
+      duration_display = ifelse(is.na(duration) | duration == 0, "-", as.character(duration)),
+
+      # Add color if mapping provided
+      book_color = if (!is.null(color_mapping)) {
+        # Abbreviate title same way as overlay chart for matching
+        title_abbrev <- ifelse(nchar(title) > 35,
+                              paste0(substr(title, 1, 32), "..."),
+                              title)
+        color_mapping[title_abbrev]
+      } else {
+        NA_character_
+      }
     )
 
-  # Create gt table
-  table <- df %>%
-    dplyr::select(
-      Title = title_display,
-      Authors = creators_display,
-      Pages = length,
-      Began = began_display,
-      Completed = completed_display,
-      `% Complete` = percent_complete,
-      `Time to Complete (Days)` = duration_display
-    ) %>%
-    gt::gt() %>%
+  # Create gt table with or without color column
+  if (!is.null(color_mapping)) {
+    table <- df %>%
+      dplyr::select(
+        ` ` = book_color,  # Color indicator column
+        Title = title_display,
+        Authors = creators_display,
+        Pages = length,
+        Began = began_display,
+        Completed = completed_display,
+        `% Complete` = percent_complete,
+        `Time to Complete (Days)` = duration_display
+      ) %>%
+      gt::gt() %>%
+      # Color the first column with book colors
+      gt::tab_style(
+        style = list(
+          gt::cell_fill(color = gt::from_column(column = " "))
+        ),
+        locations = gt::cells_body(columns = " ")
+      ) %>%
+      gt::cols_width(
+        ` ` ~ gt::px(20)
+      )
+  } else {
+    table <- df %>%
+      dplyr::select(
+        Title = title_display,
+        Authors = creators_display,
+        Pages = length,
+        Began = began_display,
+        Completed = completed_display,
+        `% Complete` = percent_complete,
+        `Time to Complete (Days)` = duration_display
+      ) %>%
+      gt::gt()
+  }
 
-    # Add inline progress bars using gtExtras
-    gtExtras::gt_plt_bar_pct(
-      column = `% Complete`,
-      scaled = TRUE,
-      fill = "#2ca25f",  # Green color matching Python version
-      background = "#f0f0f0"
-    ) %>%
+  # Add progress bars with matching colors
+  if (!is.null(color_mapping)) {
+    table <- table %>%
+      gtExtras::gt_plt_bar_pct(
+        column = `% Complete`,
+        scaled = TRUE,
+        fill = gt::from_column(column = " "),  # Use book color for each bar
+        background = "#f0f0f0"
+      )
+  } else {
+    table <- table %>%
+      gtExtras::gt_plt_bar_pct(
+        column = `% Complete`,
+        scaled = TRUE,
+        fill = "#2ca25f",  # Default green
+        background = "#f0f0f0"
+      )
+  }
+
+  table <- table %>%
 
     # Styling
     gt::tab_header(
-      title = glue::glue("{year} YEAR IN READING - Books Read ≥ 1 Day")
+      title = if (show_title) {
+        glue::glue("{year} YEAR IN READING - Books Read ≥ 1 Day")
+      } else {
+        "Books Read (At Least One Day)"
+      }
     ) %>%
 
     # Column alignment
@@ -382,27 +486,40 @@ plot_books_table <- function(df_library, df_dailies, year, config) {
       columns = c(Authors, Pages, Began, Completed, `% Complete`, `Time to Complete (Days)`)
     ) %>%
 
-    # Table styling
+    # Table styling - minimal and unified
     gt::tab_options(
       heading.align = "left",
-      heading.title.font.size = gt::px(16),
+      heading.title.font.size = gt::px(12),
       heading.title.font.weight = "bold",
-      table.font.size = gt::px(10),
-      table.border.top.style = "solid",
-      table.border.top.width = gt::px(2),
-      table.border.top.color = "black",
-      table.border.bottom.style = "solid",
-      table.border.bottom.width = gt::px(2),
-      table.border.bottom.color = "black",
+      table.font.size = gt::px(9),
+      table.border.top.style = "none",
+      table.border.bottom.style = "none",
       column_labels.border.bottom.style = "solid",
-      column_labels.border.bottom.width = gt::px(2),
-      column_labels.border.bottom.color = "black",
+      column_labels.border.bottom.width = gt::px(1),
+      column_labels.border.bottom.color = "gray80",
       column_labels.font.weight = "bold",
-      data_row.padding = gt::px(5)
+      column_labels.font.size = gt::px(9),
+      data_row.padding = gt::px(4),
+      heading.padding = gt::px(0)
     ) %>%
 
-    # Alternating row colors
-    gt::opt_row_striping(row_striping = TRUE)
+    # Subtle alternating row colors
+    gt::tab_style(
+      style = gt::cell_fill(color = "gray97"),
+      locations = gt::cells_body(rows = seq(2, nrow(df), 2))
+    )
 
   return(table)
 }
+
+#' Plot year-in-review combined chart
+#'
+#' Combines heatmap, overlay chart (no legend), and books table (with color indicators)
+#' into a single comprehensive year-in-review visualization.
+#'
+#' @param df_library Library data frame
+#' @param df_dailies Dailies data frame
+#' @param year Year to plot
+#' @param config Configuration list
+#' @return Combined plot object
+#' @export

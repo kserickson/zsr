@@ -24,7 +24,7 @@ colors:
 dimensions:
   width: 20
   heatmap_height: 8
-  overlay_height: 10
+  overlay_height: 4            # Compact for stacking multiple years
   table_base_height: 10
   table_row_height: 0.3        # Dynamic calculation base
   dpi: 300
@@ -44,8 +44,10 @@ overlay:
   alpha_lines: 0.9
   line_width: 1.0
   show_legend: true            # CRITICAL FIX - was disabled in Python
-  legend_position: "bottom"
-  legend_cols: 3
+  legend_position: "bottom"    # Options: "bottom", "right", "inside", "none"
+  legend_cols: 8               # For bottom position: more cols = less vertical space
+  legend_show_title: false     # Remove "Book" title for better alignment
+  legend_inside_position: c(0.02, 0.98)  # For inside: x, y coordinates (0-1)
   facet_alternative: false     # Set to true for small multiples version
 
 # Table settings
