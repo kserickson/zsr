@@ -527,64 +527,59 @@ plot_books_table <- function(df_library, df_dailies, year, config, color_mapping
 #' Plot reading session distribution
 #'
 #' Shows the distribution of daily page counts using violin plots (Healy Ch. 6).
-#' Reveals typical reading session sizes and variability.
+#' Reveals typical reading session sizes and variability by month.
 #'
 #' @param df_dailies Dailies data frame
-#' @param years Vector of years to plot
+#' @param year Year to plot
 #' @param config Configuration list
 #' @return ggplot object
 #' @export
-plot_session_distribution <- function(df_dailies, years, config) {
+plot_session_distribution <- function(df_dailies, year, config) {
 
-  # Aggregate daily pages per day across all books
+  # Aggregate daily pages per day across all books, grouped by month
   df_daily_totals <- df_dailies %>%
-    dplyr::filter(lubridate::year(date) %in% years) %>%
+    dplyr::filter(lubridate::year(date) == year) %>%
     dplyr::group_by(date) %>%
     dplyr::summarize(daily_pages = sum(daily_pages, na.rm = TRUE), .groups = "drop") %>%
-    dplyr::mutate(year = as.factor(lubridate::year(date)))
-
-  # Calculate summary statistics for annotation
-  summary_stats <- df_daily_totals %>%
-    dplyr::group_by(year) %>%
-    dplyr::summarize(
-      median = median(daily_pages),
-      mean = mean(daily_pages),
-      q25 = quantile(daily_pages, 0.25),
-      q75 = quantile(daily_pages, 0.75),
-      .groups = "drop"
+    dplyr::mutate(
+      month = lubridate::month(date, label = TRUE, abbr = TRUE)
     )
 
+  if (nrow(df_daily_totals) == 0) {
+    stop("No reading data found for year ", year)
+  }
+
   # Create plot
-  p <- ggplot(df_daily_totals, aes(x = year, y = daily_pages, fill = year)) +
+  p <- ggplot(df_daily_totals, aes(x = month, y = daily_pages, fill = month)) +
     # Violin plot for distribution shape
     geom_violin(alpha = 0.5, color = NA) +
-    
+
     # Box plot overlay for quartiles
     geom_boxplot(width = 0.2, alpha = 0.7, outlier.shape = NA) +
-    
+
     # Individual points for actual sessions (jittered)
     geom_jitter(width = 0.15, alpha = 0.3, size = 1, color = config$colors$text) +
-    
+
     # Median line emphasized
-    stat_summary(fun = median, geom = "point", shape = 23, 
+    stat_summary(fun = median, geom = "point", shape = 23,
                 size = 3, fill = "white", color = config$colors$text) +
-    
+
     # Color scale
     scale_fill_viridis_d(option = "viridis", guide = "none") +
-    
+
     # Y-axis
     scale_y_continuous(
       name = "Pages Read Per Day",
       expand = expansion(mult = c(0, 0.05))
     ) +
-    
+
     # Labels
     labs(
-      title = "Reading Session Distribution",
-      subtitle = "How many pages do you typically read in a day?",
-      x = "Year"
+      title = glue("{year} Reading Session Distribution"),
+      subtitle = "How many pages did you typically read each day?",
+      x = NULL
     ) +
-    
+
     # Theme
     theme_minimal(base_family = config$fonts$base_family) +
     theme(
