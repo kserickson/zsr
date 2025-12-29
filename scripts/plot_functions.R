@@ -523,3 +523,165 @@ plot_books_table <- function(df_library, df_dailies, year, config, color_mapping
 #' @param config Configuration list
 #' @return Combined plot object
 #' @export
+
+#' Plot reading session distribution
+#'
+#' Shows the distribution of daily page counts using violin plots (Healy Ch. 6).
+#' Reveals typical reading session sizes and variability.
+#'
+#' @param df_dailies Dailies data frame
+#' @param years Vector of years to plot
+#' @param config Configuration list
+#' @return ggplot object
+#' @export
+plot_session_distribution <- function(df_dailies, years, config) {
+
+  # Aggregate daily pages per day across all books
+  df_daily_totals <- df_dailies %>%
+    dplyr::filter(lubridate::year(date) %in% years) %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(daily_pages = sum(daily_pages, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::mutate(year = as.factor(lubridate::year(date)))
+
+  # Calculate summary statistics for annotation
+  summary_stats <- df_daily_totals %>%
+    dplyr::group_by(year) %>%
+    dplyr::summarize(
+      median = median(daily_pages),
+      mean = mean(daily_pages),
+      q25 = quantile(daily_pages, 0.25),
+      q75 = quantile(daily_pages, 0.75),
+      .groups = "drop"
+    )
+
+  # Create plot
+  p <- ggplot(df_daily_totals, aes(x = year, y = daily_pages, fill = year)) +
+    # Violin plot for distribution shape
+    geom_violin(alpha = 0.5, color = NA) +
+    
+    # Box plot overlay for quartiles
+    geom_boxplot(width = 0.2, alpha = 0.7, outlier.shape = NA) +
+    
+    # Individual points for actual sessions (jittered)
+    geom_jitter(width = 0.15, alpha = 0.3, size = 1, color = config$colors$text) +
+    
+    # Median line emphasized
+    stat_summary(fun = median, geom = "point", shape = 23, 
+                size = 3, fill = "white", color = config$colors$text) +
+    
+    # Color scale
+    scale_fill_viridis_d(option = "viridis", guide = "none") +
+    
+    # Y-axis
+    scale_y_continuous(
+      name = "Pages Read Per Day",
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    
+    # Labels
+    labs(
+      title = "Reading Session Distribution",
+      subtitle = "How many pages do you typically read in a day?",
+      x = "Year"
+    ) +
+    
+    # Theme
+    theme_minimal(base_family = config$fonts$base_family) +
+    theme(
+      text = element_text(color = config$colors$text),
+      plot.title = element_text(size = 14, face = "bold", hjust = 0),
+      plot.subtitle = element_text(size = 11, hjust = 0, margin = margin(0, 0, 10, 0)),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_line(color = "gray92", linewidth = 0.3),
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin = margin(15, 20, 15, 20)
+    )
+
+  return(p)
+}
+
+#' Plot completion pace dot plot
+#'
+#' Cleveland dot plot showing pages per day for each book (Healy Ch. 5).
+#' Reveals which books you read quickly vs. slowly.
+#'
+#' @param df_library Library data frame
+#' @param df_dailies Dailies data frame
+#' @param year Year to plot
+#' @param config Configuration list
+#' @return ggplot object
+#' @export
+plot_completion_pace <- function(df_library, df_dailies, year, config) {
+
+  # Get books read this year with completion data
+  df_year <- df_library %>%
+    dplyr::filter(
+      !is.na(began),
+      !is.na(duration),
+      duration > 0,
+      lubridate::year(began) == year | lubridate::year(completed) == year
+    ) %>%
+    dplyr::mutate(
+      pages_per_day = length / duration,
+      title_display = smart_truncate(title, 40)
+    ) %>%
+    dplyr::arrange(pages_per_day)
+
+  if (nrow(df_year) == 0) {
+    stop("No completed books with duration data for year ", year)
+  }
+
+  # Reorder for plotting
+  df_year <- df_year %>%
+    dplyr::mutate(title_display = forcats::fct_reorder(title_display, pages_per_day))
+
+  # Create plot
+  p <- ggplot(df_year, aes(x = pages_per_day, y = title_display)) +
+    # Segments from 0 to value
+    geom_segment(aes(x = 0, xend = pages_per_day, y = title_display, yend = title_display),
+                color = "gray70", linewidth = 0.5) +
+    
+    # Dots at values
+    geom_point(size = 3, color = config$colors$highlight) +
+    
+    # X-axis
+    scale_x_continuous(
+      name = "Pages Per Day",
+      expand = expansion(mult = c(0, 0.05))
+    ) +
+    
+    # Labels
+    labs(
+      title = glue("{year} Reading Pace"),
+      subtitle = "How quickly did you read each book?",
+      y = NULL
+    ) +
+    
+    # Theme
+    theme_minimal(base_family = config$fonts$base_family) +
+    theme(
+      text = element_text(color = config$colors$text),
+      plot.title = element_text(size = 14, face = "bold", hjust = 0),
+      plot.subtitle = element_text(size = 11, hjust = 0, margin = margin(0, 0, 10, 0)),
+      panel.grid.major.y = element_blank(),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_line(color = "gray92", linewidth = 0.3),
+      axis.text.y = element_text(size = 8),
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin = margin(15, 20, 15, 20)
+    )
+
+  return(p)
+}
+
+#' Plot reading streak calendar
+#'
+#' Enhanced calendar heatmap highlighting consecutive reading days.
+#' Shows reading consistency patterns.
+#'
+#' @param df_dailies Dailies data frame
+#' @param year Year to plot
+#' @param config Configuration list
+#' @return ggplot object
+#' @export
