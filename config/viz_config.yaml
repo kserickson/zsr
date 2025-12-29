@@ -1,0 +1,62 @@
+# ZSR Visualization Configuration
+# Following Kieran Healy's data visualization principles
+
+# Typography
+fonts:
+  base_family: "Arial"
+  title_size: 14
+  subtitle_size: 11
+  axis_title_size: 10
+  axis_text_size: 9
+  legend_text_size: 8
+  strip_text_size: 10
+
+# Colors (colorblind-friendly palettes)
+colors:
+  sequential: "viridis"        # For heatmaps - perceptually uniform
+  categorical: "Set2"          # For overlay chart books
+  diverging: "RdBu"            # Future use
+  highlight: "#E69F00"         # Okabe-Ito orange
+  background: "#FFFFFF"        # White
+  text: "#2F2F2F"              # Near-black
+
+# Plot dimensions (inches)
+dimensions:
+  width: 20
+  heatmap_height: 8
+  overlay_height: 4            # Compact for stacking multiple years
+  table_base_height: 10
+  table_row_height: 0.3        # Dynamic calculation base
+  dpi: 300
+
+# Heatmap settings
+heatmap:
+  vmax_quantile: 0.95          # Dynamic vmax based on 95th percentile
+  annotation_size_threshold: 0   # Annotate all cells with pages (0 = show all)
+  cell_border_color: "#CCCCCC"
+  zero_color: "white"
+  annotation_color_light: "black"  # For light backgrounds
+  annotation_color_dark: "white"   # For dark backgrounds
+
+# Overlay chart settings
+overlay:
+  alpha_bars: 0.6
+  alpha_lines: 0.9
+  line_width: 1.0
+  show_legend: true            # CRITICAL FIX - was disabled in Python
+  legend_position: "bottom"    # Options: "bottom", "right", "inside", "none"
+  legend_cols: 8               # For bottom position: more cols = less vertical space
+  legend_show_title: false     # Remove "Book" title for better alignment
+  legend_inside_position: c(0.02, 0.98)  # For inside: x, y coordinates (0-1)
+  facet_alternative: false     # Set to true for small multiples version
+
+# Table settings
+table:
+  title_truncate_length: 40
+  author_truncate_length: 35
+  alternating_row_colors:
+    - "white"
+    - "#F9F9F9"
+  header_background: "#E0E0E0"
+  border_color: "#CCCCCC"
+  completion_bar_colors: "Greens"  # RColorBrewer palette
