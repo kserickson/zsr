@@ -203,11 +203,14 @@ def plot_books_table(df, df_dailies, year):
     df = df[df['title'].isin(books_read_in_year) & df['status'].isin(['Completed', 'In progress'])]
     df = df.sort_values(by='began', ascending=False)
 
-    # Aggregate the most recent percent_complete for each title in df_dailies
-    df_dailies = df_dailies.groupby('ean_isbn13')['percent_complete'].last().reset_index()
+    # Aggregate the most recent percent_complete for each title as of end of year
+    # This preserves historical state for past years
+    end_of_year = pd.Timestamp(f'{year}-12-31')
+    df_dailies_year = df_dailies[df_dailies['date'] <= end_of_year]
+    df_dailies_year = df_dailies_year.groupby('ean_isbn13')['percent_complete'].last().reset_index()
 
     # Merge df_dailies with df, convert values to integers
-    df = df.merge(df_dailies, on='ean_isbn13', how='left')
+    df = df.merge(df_dailies_year, on='ean_isbn13', how='left')
     df['percent_complete'] = df['percent_complete'].fillna(0).apply(lambda x: int(x))
 
     # Truncate long titles and authors
