@@ -23,8 +23,8 @@ colors:
 # Plot dimensions (inches)
 dimensions:
   width: 20
-  heatmap_height: 2.5
-  overlay_height: 2.5
+  heatmap_height: 8
+  overlay_height: 10
   table_base_height: 10
   table_row_height: 0.3        # Dynamic calculation base
   dpi: 300
@@ -32,7 +32,7 @@ dimensions:
 # Heatmap settings
 heatmap:
   vmax_quantile: 0.95          # Dynamic vmax based on 95th percentile
-  annotation_size_threshold: 50  # Only annotate cells with 50+ pages
+  annotation_size_threshold: 0   # Annotate all cells with pages (0 = show all)
   cell_border_color: "#CCCCCC"
   zero_color: "white"
   annotation_color_light: "black"  # For light backgrounds

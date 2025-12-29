@@ -62,9 +62,9 @@ plot_reading_heatmap <- function(df_dailies, year, config) {
   df_heatmap <- df_heatmap %>%
     dplyr::mutate(pages_capped = pmin(daily_pages, vmax))
 
-  # Create annotation data (only for high values)
+  # Create annotation data (only for non-zero values)
   df_annotations <- df_heatmap %>%
-    dplyr::filter(daily_pages >= config$heatmap$annotation_size_threshold)
+    dplyr::filter(daily_pages > config$heatmap$annotation_size_threshold)
 
   # Get month positions for x-axis labels
   month_starts <- df_heatmap %>%
@@ -81,14 +81,14 @@ plot_reading_heatmap <- function(df_dailies, year, config) {
     # Annotations for high values
     geom_text(data = df_annotations,
              aes(label = daily_pages),
-             size = 2.5,
+             size = 3.5,
              color = ifelse(df_annotations$pages_capped > vmax * 0.6,
                            config$heatmap$annotation_color_dark,
                            config$heatmap$annotation_color_light)) +
 
-    # Viridis color scale
-    scale_fill_viridis_c(
-      option = "viridis",
+    # Greens color scale (better contrast for text)
+    scale_fill_gradientn(
+      colors = RColorBrewer::brewer.pal(9, "Greens"),
       limits = c(0, vmax),
       breaks = seq(0, vmax, length.out = 5),
       labels = function(x) round(x),
@@ -290,4 +290,119 @@ plot_overlay_faceted <- function(df_dailies, year, config) {
     )
 
   return(p)
+}
+
+#' Plot books table
+#'
+#' Creates a formatted table of books read during the year with inline progress bars.
+#' Equivalent to Python version using gt package.
+#'
+#' @param df_library Library data frame
+#' @param df_dailies Dailies data frame
+#' @param year Year to plot
+#' @param config Configuration list
+#' @return gt table object
+#' @export
+plot_books_table <- function(df_library, df_dailies, year, config) {
+
+  # Filter to books read at least one day this year
+  books_read_in_year <- df_dailies %>%
+    dplyr::filter(lubridate::year(date) == year) %>%
+    dplyr::pull(title) %>%
+    unique()
+
+  df <- df_library %>%
+    dplyr::filter(
+      title %in% books_read_in_year,
+      status %in% c("Completed", "In progress")
+    ) %>%
+    dplyr::arrange(desc(began))
+
+  # Get percent_complete as of end of year
+  end_of_year <- lubridate::make_date(year, 12, 31)
+  df_dailies_year <- df_dailies %>%
+    dplyr::filter(date <= end_of_year) %>%
+    dplyr::group_by(ean_isbn13) %>%
+    dplyr::slice_tail(n = 1) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(ean_isbn13, percent_complete)
+
+  # Merge and prepare data
+  df <- df %>%
+    dplyr::left_join(df_dailies_year, by = "ean_isbn13") %>%
+    dplyr::mutate(
+      percent_complete = tidyr::replace_na(percent_complete, 0),
+      percent_complete = as.integer(percent_complete),
+
+      # Truncate long titles and authors
+      title_display = smart_truncate(title, config$table$title_truncate_length),
+      creators_display = smart_truncate(creators, config$table$author_truncate_length),
+
+      # Format dates
+      began_display = format(began, "%Y-%b-%d"),
+      completed_display = ifelse(is.na(completed), "-", format(completed, "%Y-%b-%d")),
+
+      # Format duration
+      duration_display = ifelse(is.na(duration) | duration == 0, "-", as.character(duration))
+    )
+
+  # Create gt table
+  table <- df %>%
+    dplyr::select(
+      Title = title_display,
+      Authors = creators_display,
+      Pages = length,
+      Began = began_display,
+      Completed = completed_display,
+      `% Complete` = percent_complete,
+      `Time to Complete (Days)` = duration_display
+    ) %>%
+    gt::gt() %>%
+
+    # Add inline progress bars using gtExtras
+    gtExtras::gt_plt_bar_pct(
+      column = `% Complete`,
+      scaled = TRUE,
+      fill = "#2ca25f",  # Green color matching Python version
+      background = "#f0f0f0"
+    ) %>%
+
+    # Styling
+    gt::tab_header(
+      title = glue::glue("{year} YEAR IN READING - Books Read ≥ 1 Day")
+    ) %>%
+
+    # Column alignment
+    gt::cols_align(
+      align = "left",
+      columns = c(Title)
+    ) %>%
+    gt::cols_align(
+      align = "center",
+      columns = c(Authors, Pages, Began, Completed, `% Complete`, `Time to Complete (Days)`)
+    ) %>%
+
+    # Table styling
+    gt::tab_options(
+      heading.align = "left",
+      heading.title.font.size = gt::px(16),
+      heading.title.font.weight = "bold",
+      table.font.size = gt::px(10),
+      table.border.top.style = "solid",
+      table.border.top.width = gt::px(2),
+      table.border.top.color = "black",
+      table.border.bottom.style = "solid",
+      table.border.bottom.width = gt::px(2),
+      table.border.bottom.color = "black",
+      column_labels.border.bottom.style = "solid",
+      column_labels.border.bottom.width = gt::px(2),
+      column_labels.border.bottom.color = "black",
+      column_labels.font.weight = "bold",
+      data_row.padding = gt::px(5)
+    ) %>%
+
+    # Alternating row colors
+    gt::opt_row_striping(row_striping = TRUE)
+
+  return(table)
 }

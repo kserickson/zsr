@@ -20,6 +20,8 @@ suppressPackageStartupMessages({
   library(glue)
   library(viridis)
   library(RColorBrewer)
+  library(gt)
+  library(gtExtras)
 })
 
 # Source utility scripts
@@ -33,7 +35,7 @@ source(here("scripts", "plot_functions.R"))
 #' @param years Vector of years to process (NULL = all years)
 #' @param plot_types Vector of plot types to generate
 main <- function(years = NULL,
-                plot_types = c("heatmap", "overlay")) {
+                plot_types = c("heatmap", "overlay", "table")) {
 
   cat("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
   cat("  ZSR Visualization (R/ggplot2)\n")
@@ -65,7 +67,7 @@ main <- function(years = NULL,
 
     # Heatmap
     if ("heatmap" %in% plot_types) {
-      cat(glue("  [1/2] Creating heatmap..."))
+      cat(glue("  [1/3] Creating heatmap..."))
       tryCatch({
         p <- plot_reading_heatmap(df_dailies, year, config)
         save_plot(p,
@@ -81,7 +83,7 @@ main <- function(years = NULL,
     # Overlay chart
     if ("overlay" %in% plot_types) {
       chart_type <- if (isTRUE(config$overlay$facet_alternative)) "faceted" else "overlay"
-      cat(glue("  [2/2] Creating {chart_type} chart..."))
+      cat(glue("  [2/3] Creating {chart_type} chart..."))
 
       tryCatch({
         if (isTRUE(config$overlay$facet_alternative)) {
@@ -94,6 +96,21 @@ main <- function(years = NULL,
                  glue("overlay-chart-{year}.png"),
                  config,
                  height = config$dimensions$overlay_height)
+        cat(" ✓\n")
+      }, error = function(e) {
+        cat(glue(" ✗ Error: {e$message}\n"))
+      })
+    }
+
+    # Books table
+    if ("table" %in% plot_types) {
+      cat(glue("  [3/3] Creating books table..."))
+      tryCatch({
+        table <- plot_books_table(df_library, df_dailies, year, config)
+
+        # Save gt table as PNG
+        output_path <- file.path(config$output_paths$figures, glue("books-table-{year}.png"))
+        gt::gtsave(table, output_path, vwidth = 2000, vheight = 2000)
         cat(" ✓\n")
       }, error = function(e) {
         cat(glue(" ✗ Error: {e$message}\n"))
