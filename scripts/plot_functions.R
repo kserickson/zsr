@@ -685,3 +685,105 @@ plot_completion_pace <- function(df_library, df_dailies, year, config) {
 #' @param config Configuration list
 #' @return ggplot object
 #' @export
+
+#' Plot cumulative reading progress
+#'
+#' Line chart showing running total of pages read over time with milestone markers.
+#' Shows reading momentum and pace throughout the year.
+#'
+#' @param df_dailies Dailies data frame
+#' @param year Year to plot
+#' @param config Configuration list
+#' @return ggplot object
+#' @export
+plot_cumulative_progress <- function(df_dailies, year, config) {
+
+  # Aggregate daily totals
+  df_year <- df_dailies %>%
+    dplyr::filter(lubridate::year(date) == year) %>%
+    dplyr::group_by(date) %>%
+    dplyr::summarize(daily_pages = sum(daily_pages, na.rm = TRUE), .groups = "drop") %>%
+    dplyr::arrange(date) %>%
+    dplyr::mutate(cumulative_pages = cumsum(daily_pages))
+
+  # Add milestones every 1000 pages
+  total_pages <- max(df_year$cumulative_pages)
+  milestones <- seq(1000, floor(total_pages / 1000) * 1000, by = 1000)
+  
+  milestone_data <- tibble::tibble()
+  for (milestone in milestones) {
+    milestone_date <- df_year %>%
+      dplyr::filter(cumulative_pages >= milestone) %>%
+      dplyr::slice(1) %>%
+      dplyr::pull(date)
+    
+    if (length(milestone_date) > 0) {
+      milestone_data <- dplyr::bind_rows(
+        milestone_data,
+        tibble::tibble(date = milestone_date, pages = milestone)
+      )
+    }
+  }
+
+  # Create plot
+  p <- ggplot(df_year, aes(x = date, y = cumulative_pages)) +
+    # Area under curve
+    geom_area(fill = config$colors$highlight, alpha = 0.2) +
+    
+    # Main line
+    geom_line(color = config$colors$highlight, linewidth = 1.2) +
+    
+    # Milestone markers
+    {if (nrow(milestone_data) > 0) {
+      geom_point(
+        data = milestone_data,
+        aes(x = date, y = pages),
+        size = 3, color = config$colors$text, fill = "white",
+        shape = 21, stroke = 1.5
+      )
+    }} +
+    
+    # Milestone labels
+    {if (nrow(milestone_data) > 0) {
+      geom_text(
+        data = milestone_data,
+        aes(x = date, y = pages, label = scales::comma(pages)),
+        vjust = -1, size = 3, family = config$fonts$base_family,
+        color = config$colors$text
+      )
+    }} +
+    
+    # Scales
+    scale_x_date(
+      date_breaks = "1 month",
+      date_labels = "%b",
+      expand = expansion(mult = c(0.02, 0.02))
+    ) +
+    scale_y_continuous(
+      labels = scales::comma,
+      expand = expansion(mult = c(0, 0.1))
+    ) +
+    
+    # Labels
+    labs(
+      title = glue("{year} Cumulative Reading Progress"),
+      subtitle = glue("Total: {scales::comma(total_pages)} pages"),
+      x = NULL,
+      y = "Cumulative Pages"
+    ) +
+    
+    # Theme
+    theme_minimal(base_family = config$fonts$base_family) +
+    theme(
+      text = element_text(color = config$colors$text),
+      plot.title = element_text(size = 14, face = "bold", hjust = 0),
+      plot.subtitle = element_text(size = 11, hjust = 0, margin = margin(0, 0, 10, 0)),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "gray92", linewidth = 0.3),
+      plot.background = element_rect(fill = "white", color = NA),
+      plot.margin = margin(15, 20, 15, 20)
+    )
+
+  return(p)
+}
+
