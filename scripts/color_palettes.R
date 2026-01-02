@@ -102,13 +102,19 @@ get_zsr_palette <- function(palette_type, palette_name, n = NULL, reverse = FALS
       }
       # Handle case where n exceeds palette max
       palette_info <- RColorBrewer::brewer.pal.info[palette_spec, ]
-      if (n > palette_info$maxcolors) {
+      max_colors <- palette_info$maxcolors
+
+      # RColorBrewer requires minimum 3 colors for most palettes
+      # Get the palette-specific minimum from the actual function
+      min_colors <- if (palette_info$category == "qual") 3 else 3
+
+      if (n > max_colors) {
         # Interpolate for more colors
-        base_colors <- RColorBrewer::brewer.pal(palette_info$maxcolors, palette_spec)
+        base_colors <- RColorBrewer::brewer.pal(max_colors, palette_spec)
         grDevices::colorRampPalette(base_colors)(n)
-      } else if (n < palette_info$mincolors) {
+      } else if (n < min_colors) {
         # Get minimum and subset
-        RColorBrewer::brewer.pal(palette_info$mincolors, palette_spec)[1:n]
+        RColorBrewer::brewer.pal(min_colors, palette_spec)[1:n]
       } else {
         RColorBrewer::brewer.pal(n, palette_spec)
       }

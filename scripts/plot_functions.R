@@ -501,13 +501,16 @@ plot_books_table <- function(df_library, df_dailies, year, config, color_mapping
       column_labels.font.size = gt::px(9),
       data_row.padding = gt::px(4),
       heading.padding = gt::px(0)
-    ) %>%
-
-    # Subtle alternating row colors
-    gt::tab_style(
-      style = gt::cell_fill(color = "gray97"),
-      locations = gt::cells_body(rows = seq(2, nrow(df), 2))
     )
+
+  # Add subtle alternating row colors (only if more than 1 row)
+  if (nrow(df) > 1) {
+    table <- table %>%
+      gt::tab_style(
+        style = gt::cell_fill(color = "gray97"),
+        locations = gt::cells_body(rows = seq(2, nrow(df), 2))
+      )
+  }
 
   return(table)
 }
